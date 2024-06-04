@@ -44,6 +44,7 @@ with st.sidebar:
     months6= st.checkbox("Last 6 Months", False)
     quater= st.checkbox("Last Quater", False)
 
+
 def daisply(daily_returns, Quant, Alanyze):
     if Quant == "Day":
         st.header("Daily Analysis")
@@ -68,6 +69,8 @@ def daisply(daily_returns, Quant, Alanyze):
         st.write(f"Maximum ***Gains*** in a {Quant}: {Alanyze.max_profit(daily_returns)[0]}")
         st.write(f"***Least Profitable {Quant}***: {Alanyze.min_profit(daily_returns)[1]}")
         st.write(f"Maximum ***Loss*** in a {Quant}: {Alanyze.min_profit(daily_returns)[0]}")
+        st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(daily_returns, 1)}")
+        st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(daily_returns, -1)}")
 
     st.subheader(f"Profit/Loss Data per {Quant}")
     st.bar_chart(daily_returns, y=['pnl_absolute'] )
@@ -108,27 +111,22 @@ def analysis(Alanyze):
     st.write(f"***ROI %***: {Alanyze.roi(monthly_returns)[1]}%")
     st.write(f"***Profit Factor***: {Alanyze.ProfitFactor()}")
     st.write(f"***Yearly Volatility***: {Alanyze.annual_std}")
-    st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(1)}")
-    st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(-1)}")
+    st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(Alanyze.csv_data, 1)}")
+    st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(Alanyze.csv_data, -1)}")
     if month:
-        last_month = monthly_returns.index[-1]
-        last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'] == last_month]
+        last_month_data = daily_returns.iloc[-21:]
         st.write(f"Win Rate for ***last Month***: {Alanyze.win_rate(last_month_data)}")
     if week:
-        last_month = weekly_returns.index[-1]
-        last_month_data = Alanyze.csv_data[Alanyze.csv_data['Week'] == last_month]
+        last_month_data = daily_returns.iloc[-6:]
         st.write(f"Win Rate for ***last Week***: {Alanyze.win_rate(last_month_data)}")
     if year:
-        last_month = yearly_returns.index[-1]
-        last_month_data = Alanyze.csv_data[Alanyze.csv_data['Year'] == last_month]
+        last_month_data = daily_returns.iloc[-213:]
         st.write(f"Win Rate for ***last Year***: {Alanyze.win_rate(last_month_data)}")
     if months6:
-        last_month = np.array(monthly_returns.index[-6:])
-        last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'].isin(last_month)]
+        last_month_data = daily_returns.iloc[-101:]
         st.write(f"Win Rate for ***last 6 Months***: {Alanyze.win_rate(last_month_data)}")
     if quater:
-        last_month = np.array(monthly_returns.index[-4:])
-        last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'].isin(last_month)]
+        last_month_data = daily_returns.iloc[-59:]
         st.write(f"Win Rate for ***last Quater:*** {Alanyze.win_rate(last_month_data)}")
 
     st.write(f"***Sharpe Ratio:*** {Alanyze.Sharpe()}")

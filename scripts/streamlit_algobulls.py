@@ -7,7 +7,7 @@ import re
 import glob
 
 #change filepath here in "path"
-path = "../files/StrategyBacktestingPLBook-*.csv"
+path = "/files/StrategyBacktestingPLBook-*.csv"
 print("\nUsing glob.iglob()")
 Files = []
 
@@ -70,6 +70,8 @@ def daisply(daily_returns, Quant):
         st.write(f"Maximum ***Gains*** in a {Quant}: {Alanyze.max_profit(daily_returns)[0]}")
         st.write(f"***Least Profitable {Quant}***: {Alanyze.min_profit(daily_returns)[1]}")
         st.write(f"Maximum ***Loss*** in a {Quant}: {Alanyze.min_profit(daily_returns)[0]}")
+        st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(daily_returns, 1)}")
+        st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(daily_returns, -1)}")
 
     st.subheader(f"Profit/Loss Data per {Quant}")
     st.bar_chart(daily_returns, y=['pnl_absolute'] )
@@ -87,7 +89,7 @@ def display(weekday_returns):
     tab = weekday_returns['pnl_absolute']
     st.table(tab)
 
-csv = f"../files/StrategyBacktestingPLBook-{option}.csv"
+csv = f"/files/StrategyBacktestingPLBook-{option}.csv"
 Alanyze = StatergyAnalysis(csv)
 daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Alanyze.analysis()
 
@@ -108,28 +110,28 @@ st.write(f"***HIT Ratio***: {Alanyze.HIT()}")
 st.write(f"***ROI***: {Alanyze.roi(monthly_returns)[0]}")
 st.write(f"***ROI %***: {Alanyze.roi(monthly_returns)[1]}%")
 st.write(f"***Profit Factor***: {Alanyze.ProfitFactor()}")
-st.write(f"***Yearly Volatility***: {Alanyze.annual_std}")
-st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(1)}")
-st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(-1)}")
+st.write(f"***Yearly Volatility***: {Alanyze.annual_std * 100}")
+st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(Alanyze.csv_data, 1)}")
+st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(Alanyze.csv_data, -1)}")
 if month:
-    last_month = monthly_returns.index[-1]
-    last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'] == last_month]
+    last_month_data = daily_returns.iloc[-21:]
+    #last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'] == last_month]
     st.write(f"Win Rate for ***last Month***: {Alanyze.win_rate(last_month_data)}")
 if week:
-    last_month = weekly_returns.index[-1]
-    last_month_data = Alanyze.csv_data[Alanyze.csv_data['Week'] == last_month]
+    last_month_data = daily_returns.iloc[-6:]
+    #last_month_data = Alanyze.csv_data[Alanyze.csv_data['Week'] == last_month]
     st.write(f"Win Rate for ***last Week***: {Alanyze.win_rate(last_month_data)}")
 if year:
-    last_month = yearly_returns.index[-1]
-    last_month_data = Alanyze.csv_data[Alanyze.csv_data['Year'] == last_month]
+    last_month_data = daily_returns.iloc[-213:]
+    #last_month_data = Alanyze.csv_data[Alanyze.csv_data['Year'] == last_month]
     st.write(f"Win Rate for ***last Year***: {Alanyze.win_rate(last_month_data)}")
 if months6:
-    last_month = np.array(monthly_returns.index[-6:])
-    last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'].isin(last_month)]
+    last_month_data = daily_returns.iloc[-101:]
+    #last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'].isin(last_month)]
     st.write(f"Win Rate for ***last 6 Months***: {Alanyze.win_rate(last_month_data)}")
 if quater:
-    last_month = np.array(monthly_returns.index[-4:])
-    last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'].isin(last_month)]
+    last_month_data = daily_returns.iloc[-59:]
+    #last_month_data = Alanyze.csv_data[Alanyze.csv_data['Month'].isin(last_month)]
     st.write(f"Win Rate for ***last Quater:*** {Alanyze.win_rate(last_month_data)}")
 
 st.write(f"***Sharpe Ratio:*** {Alanyze.Sharpe()}")
