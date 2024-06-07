@@ -96,7 +96,7 @@ def analysis(Alanyze):
     st.write(f"***Max Drawdown***: {Alanyze.drawdown_max}")
     st.write(f"***Maximum Drawdowm percentage***: {Alanyze.drawdown_pct}")
     st.subheader("Drawdown Curve")
-    st.line_chart(Alanyze.csv_data, y='drawdown_pct', x='Day')
+    st.line_chart(Alanyze.csv_data, y='drawdown_percentage', x='Day')
     st.write(f"***Average loss per losing trade***: {Alanyze.winCount(Alanyze.csv_data, -1)}")
     st.write(f"***Average gain per winning trade***: {Alanyze.winCount(Alanyze.csv_data, 1)}")
     st.write(f"***Maximum Gains***: {Alanyze.max_profit(Alanyze.csv_data)[0]}")

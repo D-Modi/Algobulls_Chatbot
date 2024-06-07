@@ -7,7 +7,7 @@ import re
 import glob
 
 #change filepath here in "path"
-path = "/files/StrategyBacktestingPLBook-*.csv"
+path = "files/StrategyBacktestingPLBook-*.csv"
 print("\nUsing glob.iglob()")
 Files = []
 
@@ -89,7 +89,7 @@ def display(weekday_returns):
     tab = weekday_returns['pnl_absolute']
     st.table(tab)
 
-csv = f"/files/StrategyBacktestingPLBook-{option}.csv"
+csv = f"files/StrategyBacktestingPLBook-{option}.csv"
 Alanyze = StatergyAnalysis(csv)
 daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Alanyze.analysis()
 
@@ -97,6 +97,8 @@ st.write(f"***Max Drawdown***: {Alanyze.drawdown_max}")
 st.write(f"***Maximum Drawdowm percentage***: {Alanyze.drawdown_pct}")
 st.subheader("Drawdown Curve")
 st.line_chart(Alanyze.csv_data, y='drawdown_pct', x='Day')
+st.line_chart(Alanyze.csv_data, y='drawdown_percentage', x='Day')
+st.table
 st.write(f"***Average loss per losing trade***: {Alanyze.winCount(Alanyze.csv_data, -1)}")
 st.write(f"***Average gain per winning trade***: {Alanyze.winCount(Alanyze.csv_data, 1)}")
 st.write(f"***Maximum Gains***: {Alanyze.max_profit(Alanyze.csv_data)[0]}")
@@ -110,7 +112,7 @@ st.write(f"***HIT Ratio***: {Alanyze.HIT()}")
 st.write(f"***ROI***: {Alanyze.roi(monthly_returns)[0]}")
 st.write(f"***ROI %***: {Alanyze.roi(monthly_returns)[1]}%")
 st.write(f"***Profit Factor***: {Alanyze.ProfitFactor()}")
-st.write(f"***Yearly Volatility***: {Alanyze.annual_std * 100}")
+st.write(f"***Yearly Volatility***: {Alanyze.yearlyVola()}")
 st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(Alanyze.csv_data, 1)}")
 st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(Alanyze.csv_data, -1)}")
 if month:
@@ -139,7 +141,32 @@ st.write(f"***Calmar Ratio:*** {Alanyze.Calmar()}")
 st.write(f"***Sortino Ratio:*** {Alanyze.Sortino()}")
 
 st.subheader("Equity Curve")
-st.line_chart(Alanyze.csv_data, y='equity_curve', x='Day')
+st.line_chart(Alanyze.daily_equity, y='equity_curve')
+nan_rows = Alanyze.csv_data[Alanyze.csv_data['equity_curve'] == 0]
+st.write(nan_rows)
+
+
+# Streamlit interface
+st.title("Line Chart of Equity Curve Between Given Dates")
+
+# Date input widgets to select the date range
+start_date = st.date_input("Start Date", value=pd.to_datetime("2022-10-04"))
+end_date = st.date_input("End Date", value=pd.to_datetime("2022-10-31"))
+
+# Filter the DataFrame to include only rows within the specified date range
+start_date = pd.to_datetime(start_date)
+end_date = pd.to_datetime(end_date)
+
+# Filter the DataFrame to include only rows within the specified date range
+if start_date and end_date:
+    filtered_df = Alanyze.csv_data[(pd.to_datetime(Alanyze.csv_data['Day']) >= start_date) & (pd.to_datetime(Alanyze.csv_data['Day']) <= end_date)]
+    
+    # Display the filtered DataFrame for reference
+    st.write(f"Data between {start_date.date()} and {end_date.date()}:")
+    st.write(filtered_df)
+
+    # Plot the line chart
+    st.line_chart(filtered_df.set_index('Day')['equity_curve'])
 if threeD:
     st.write(f"Returns for the ***last 3 Days***: {Alanyze.Treturns(3)[1]}%")
 if thirtyD:

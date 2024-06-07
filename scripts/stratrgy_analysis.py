@@ -9,7 +9,8 @@ class StatergyAnalysis:
         self.csv_data = self.new_csv(csv_filepath)
         self.daily_returnts = None
         self.daily_ana()
-        
+        self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
+        #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
         self.equity_curve_value = self.csv_data['equity_curve'].tolist()
         self.risk_free_rate = 0.07
         #self.initial_investment = self.equity_curve_value[-1]
@@ -36,6 +37,8 @@ class StatergyAnalysis:
             data.rename(columns={'EN_TT': 'entry_transaction_type'}, inplace=True)
         if 'Drawdown %' in data.columns:
             data.rename(columns={'Drawdown %': 'drawdown_percentage'}, inplace=True)
+
+        data = data.dropna(subset=['pnl_absolute'])
         
         data['date'] = pd.to_datetime(data['entry_timestamp'])
         data = data.sort_values(by='date')
@@ -62,7 +65,7 @@ class StatergyAnalysis:
         daily_mean = self.equity_PctChange.mean() 
         daily_std =  self.equity_PctChange.std()
         self.annual_std = self.equity_PctChange.std() * np.sqrt(252) 
-  
+
 
     def yearlyVola(self):
         equity = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
@@ -271,3 +274,4 @@ class StatergyAnalysis:
         daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
         return daily_positive/daily_neg * -1
     
+
