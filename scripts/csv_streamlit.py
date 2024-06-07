@@ -92,7 +92,8 @@ def display(weekday_returns, Alanyze):
 def analysis(Alanyze):
 
     daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Alanyze.analysis()
-
+    
+    
     st.write(f"***Max Drawdown***: {Alanyze.drawdown_max}")
     st.write(f"***Maximum Drawdowm percentage***: {Alanyze.drawdown_pct}")
     st.subheader("Drawdown Curve")
@@ -110,7 +111,7 @@ def analysis(Alanyze):
     st.write(f"***ROI***: {Alanyze.roi(monthly_returns)[0]}")
     st.write(f"***ROI %***: {Alanyze.roi(monthly_returns)[1]}%")
     st.write(f"***Profit Factor***: {Alanyze.ProfitFactor()}")
-    st.write(f"***Yearly Volatility***: {Alanyze.annual_std}")
+    st.write(f"***Yearly Volatility***: {Alanyze.yearlyVola()}")
     st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(Alanyze.csv_data, 1)}")
     st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(Alanyze.csv_data, -1)}")
     if month:
@@ -136,17 +137,17 @@ def analysis(Alanyze):
     st.subheader("Equity Curve")
     st.line_chart(Alanyze.csv_data, y='equity_curve', x='Day')
     if threeD:
-        st.write(f"Returns for the ***last 3 Days***: {Alanyze.Treturns(3)[1]}%")
+        st.write(f"Returns for the ***last 3 Days***: {Alanyze.Treturns(4)[1]}%")
     if thirtyD:
-        st.write(f"Returns for the ***last 30 Days***: {Alanyze.Treturns(30)[1]}%")
+        st.write(f"Returns for the ***last 30 Days***: {Alanyze.Treturns(22)[1]}%")
     if twoW:
-        st.write(f"Returns for the ***last 2 Weeks***: {Alanyze.Treturns(14)[1]}%")
+        st.write(f"Returns for the ***last 2 Weeks***: {Alanyze.Treturns(11)[1]}%")
     if sixM:
-        st.write(f"Returns for the ***last 6 Months***: {Alanyze.Treturns(180)[1]}%")
+        st.write(f"Returns for the ***last 6 Months***: {Alanyze.Treturns(101)[1]}%")
     if oneY:
-        st.write(f"Returns for the ***last 1 Year***: {Alanyze.Treturns(365)[1]}%")
+        st.write(f"Returns for the ***last 1 Year***: {Alanyze.Treturns(213)[1]}%")
     if twoY:
-        st.write(f"Returns for the ***last 2 Years***: {Alanyze.Treturns(365*2)[1]}%")
+        st.write(f"Returns for the ***last 2 Years***: {Alanyze.Treturns(213*2)[1]}%")
 
     if Daily:
         daisply(daily_returns, "Day", Alanyze)

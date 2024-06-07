@@ -54,7 +54,7 @@ class StatergyAnalysis:
         data['Week'] = data['Week'].dt.strftime('%Y-%U')
         data['Month'] = data['Month'].dt.strftime('%Y-%m')
         data['Year'] = data['Year'].dt.strftime('%Y')
-
+        data['weekday'] = data['weekday'].dt.strftime('%a')
         return data
         
     def daily_equity_Curve(self):
@@ -71,7 +71,7 @@ class StatergyAnalysis:
         equity = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
         equity_PctChange = equity.pct_change().dropna()
         annual_std = equity_PctChange.std() * np.sqrt(252) 
-        return annual_std * 100
+        return round(annual_std * 100, 2)
 
     def analysis(self):
         daily_returns = self.csv_data.groupby('Day').sum(numeric_only = True)
@@ -118,17 +118,17 @@ class StatergyAnalysis:
     
     def Sharpe(self):
         sharpe_ratio = (self.annual_mean - self.risk_free_rate) / self.annual_std
-        return sharpe_ratio
+        return round(sharpe_ratio, 2)
     
     def Calmar(self):
         calmar_ratio = self.annual_mean / self.drawdown_pct * -100
-        return calmar_ratio
+        return round(calmar_ratio, 2)
     
     def Sortino(self):
         downside_returns = np.where(self.equity_PctChange < 0, self.equity_PctChange, 0)
         downside_deviation = downside_returns.std() * np.sqrt(252)
         sortino_ratio = (self.annual_mean - self.risk_free_rate) / downside_deviation
-        return sortino_ratio
+        return round(sortino_ratio, 2)
     
     def max_consecutive(self, daily_returns, quant):
   
@@ -143,7 +143,7 @@ class StatergyAnalysis:
     
     def win_rate(self, daily_returns):
         wins = daily_returns[daily_returns['pnl_absolute']>0]   
-        return len(wins)/len(daily_returns)*100
+        return round(len(wins)/len(daily_returns)*100, 2)
 
     def winCount(self, daily_returns, i):
         wins = daily_returns[daily_returns['pnl_absolute']>=0]
@@ -156,20 +156,20 @@ class StatergyAnalysis:
         cum_pnl = self.daily_returnts['cum_pnl'].tolist()
         cum_pnl = cum_pnl[-1*t:]
         ret = cum_pnl[-1] - cum_pnl[0]
-        return ret, ret*100/self.initial_investment
+        return ret, round(ret*100/self.initial_investment, 2)
 
     def avgReturns(self, daily_returns):
         daily_returns['returns'] = daily_returns['cum_pnl']/self.initial_investment *100
         avg_returns = daily_returns['cum_pnl'].mean()
         avg_returns_pct = daily_returns['returns'].mean()
-        return avg_returns, avg_returns_pct
+        return round(avg_returns, 2), round(avg_returns_pct, 2)
     
     def drawdown(self):
         self.csv_data['cum_max'] = self.csv_data['equity_curve'].cummax()
         self.csv_data['drawdown'] = self.csv_data['equity_curve'] - self.csv_data['cum_max']
         self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['cum_max'])*100
     
-        return self.csv_data['drawdown'].min(), self.csv_data['drawdown_pct'].min()
+        return round(self.csv_data['drawdown'].min(), 2), round(self.csv_data['drawdown_pct'].min(), 2)
     
     def daily_returns_hist(self, daily_returns):
         plt.hist(daily_returns['pnl_absolute'])
@@ -183,7 +183,7 @@ class StatergyAnalysis:
     def roi(self, monthly_returns):
         ROI = monthly_returns[['cum_pnl']].iloc[-1]
         ROI_perct = round((ROI.values[0]/150000)*100,2)
-        return ROI.values[0], ROI_perct
+        return round(ROI.values[0], 2), round(ROI_perct, 2)
 
     def num_profit(self, returns):
         return sum(returns['pnl_absolute'] > 0)
@@ -252,7 +252,7 @@ class StatergyAnalysis:
         return fig
 
     def HIT(self):
-        return round((self.num_wins/self.numTrades*100), 1)
+        return round((self.num_wins/self.numTrades*100), 2)
     
     def num_tradeType(self, quant):
         i = -1
@@ -267,11 +267,11 @@ class StatergyAnalysis:
         return len(trad)
             
     def avgTrades(self, daily_returns):
-        return len(self.csv_data)/len(daily_returns)
+        return round(len(self.csv_data)/len(daily_returns) , 2)
     
     def ProfitFactor(self):
         daily_positive = self.daily_returnts[self.daily_returnts['pnl_absolute'] > 0]['pnl_absolute'].sum()
         daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
-        return daily_positive/daily_neg * -1
+        return round(daily_positive/daily_neg * -1 , 2)
     
 
