@@ -2,12 +2,15 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt  
 import streamlit as st
+import seaborn as sn
+from  matplotlib.colors import LinearSegmentedColormap
 
 class StatergyAnalysis:
 
     def __init__(self, csv_filepath):
         self.csv_data = self.new_csv(csv_filepath)
         self.daily_returnts = None
+        self.monthly_returns = None
         self.daily_ana()
         self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
         #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
@@ -76,13 +79,15 @@ class StatergyAnalysis:
     def analysis(self):
         daily_returns = self.csv_data.groupby('Day').sum(numeric_only = True)
         daily_returns['cum_pnl'] = daily_returns['pnl_absolute'].cumsum()
-        daily_analysis = daily_returns[['pnl_absolute', 'cum_pnl']]
+        daily_returns['roi'] = round((daily_returns['cum_pnl']/self.initial_investment)*100,2)
+        daily_analysis = daily_returns[['pnl_absolute', 'cum_pnl', 'roi']]
         self.daily_returnts = daily_analysis
 
         Monthly_returns = self.csv_data.groupby('Month').sum(numeric_only = True)
         Monthly_returns['cum_pnl'] = Monthly_returns['pnl_absolute'].cumsum()
         Monthly_returns['roi'] = round((Monthly_returns['cum_pnl']/self.initial_investment)*100,2)
         monthly_analysis = Monthly_returns[['pnl_absolute', 'cum_pnl', 'roi']]
+        
 
         weekday_returns = self.csv_data.groupby('weekday').sum(numeric_only = True)
         #weekday_returns['pnl_absolute'] = weekday_returns['pnl_absolute'].abs()
@@ -172,13 +177,16 @@ class StatergyAnalysis:
         return round(self.csv_data['drawdown'].min(), 2), round(self.csv_data['drawdown_pct'].min(), 2)
     
     def daily_returns_hist(self, daily_returns):
-        plt.hist(daily_returns['pnl_absolute'])
-        plt.savefig("histogram")
-        plt.show()
+        fig1, ax1 = plt.subplots(figsize=(10, 2))  
+        ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
+        ax1.set_xticks([])
+        ax1.set_yticks([])
 
-        plt.plot(daily_returns['cum_pnl'])
-        plt.savefig('histogram')
-        plt.show()
+        fig2, ax2 = plt.subplots(figsize=(10, 5))  
+        ax2.bar(daily_returns.index, daily_returns['cum_pnl'])
+        ax2.set_xticklabels([])
+        
+        return fig1, fig2
 
     def roi(self, monthly_returns):
         ROI = monthly_returns[['cum_pnl']].iloc[-1]
@@ -274,4 +282,39 @@ class StatergyAnalysis:
         daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
         return round(daily_positive/daily_neg * -1 , 2)
     
+    def trades_pie(self):
+        Employee = ['Short', 'Long']
+        Salary = [self.num_tradeType('short'), self.num_tradeType('long')]
+        f, ax = plt.subplot()
+        # Pie Chart
+        plt.pie(Salary, labels=Employee,
+                autopct='%1.1f%%', pctdistance=0.85)
+        
+        centre_circle = plt.Circle((0, 0), 0.70, fc='white')
+        fig = plt.gcf()
+        
+        # Adding Circle in Pie chart
+        fig.gca().add_artist(centre_circle)
+        plt.title('Trades')
+        plt.show()
 
+    def htmap(self):
+        
+        data = np.array(self.daily_returnts['pnl_absolute'].tolist())
+        m = 5 * int(len(data)/ 5)
+        data = data[:m]
+        data = np.reshape(data, (5, -1))
+        line_width = 0.8
+        linecolor = "White"
+
+        c = ["darkred","red","lightcoral","white", "palegreen","green","darkgreen"]
+        v = [0,.15,.4,.5,0.6,.9,1.]
+        l = list(zip(v,c))
+        cm=LinearSegmentedColormap.from_list('rg',l, N=256)
+
+        hm, ax = plt.subplots(figsize=(72,2), dpi=400)
+        # plotting the heatmap 
+        sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax) 
+        st.write(hm)
+      
+       

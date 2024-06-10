@@ -192,4 +192,3 @@ else:
     st.title(f"Analyis Of Stratrergy ***{option}***")
     an= StatergyAnalysis(csv)
     analysis(an)
-
