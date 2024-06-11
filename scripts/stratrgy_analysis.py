@@ -196,8 +196,11 @@ class StatergyAnalysis:
     def num_profit(self, returns):
         return sum(returns['pnl_absolute'] > 0)
 
-    def num_loss(self, returns):
-        return sum(returns['pnl_absolute'] < 0)
+    def num_loss(self, returns, i):
+        if i == -1:
+            return sum(returns['pnl_absolute'] < 0)
+        else:
+            return sum(returns['pnl_absolute'] >=0)
 
     def trading_num(self, returns):
         return len(returns)
