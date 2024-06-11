@@ -4,11 +4,12 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
+from statistics import mean 
 
 class StatergyAnalysis:
 
     def __init__(self, csv_filepath):
-        self.csv_data = self.new_csv(csv_filepath)
+        self.csv_data = self.new_csv(csv_filepath, 0)
         self.daily_returnts = None
         self.monthly_returns = None
         self.daily_ana()
@@ -25,11 +26,34 @@ class StatergyAnalysis:
         self.daily_equity_Curve()
         self.num_wins = self.num_profit(self.csv_data)
         self.numTrades = len(self.csv_data)
+    
+    def __init__(self, csv_data, i):
+        self.csv_data = self.new_csv(csv_data , i)
+        self.daily_returnts = None
+        self.monthly_returns = None
+        self.daily_ana()
+        self.initial_investment = 150000
+        self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
+        #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
+        self.equity_curve_value = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
+        self.risk_free_rate = 0.07
+        #self.initial_investment = self.equity_curve_value[-1]
+        
+        self.equity_PctChange = None
+        self.annual_std = 0
+        self.annual_mean = 0
+        self.drawdown_max, self.drawdown_pct = self.drawdown()
+        self.daily_equity_Curve()
+        self.num_wins = self.num_profit(self.csv_data)
+        self.numTrades = len(self.csv_data)
 
     
-    def new_csv(Self, filepath):
-        data = pd.read_csv(filepath)
-
+    def new_csv(Self, filepath, i):
+        if i == 0:
+            data = pd.read_csv(filepath)
+        else:
+            data = pd.DataFrame(filepath)
+            
         if 'EN_TIME' in data.columns:
             data.rename(columns={'EN_TIME': 'entry_timestamp'}, inplace=True)
         if 'P&L' in data.columns:
@@ -38,8 +62,13 @@ class StatergyAnalysis:
             data.rename(columns={'Equity Curve': 'equity_curve'}, inplace=True)
         if 'EN_TT' in data.columns:
             data.rename(columns={'EN_TT': 'entry_transaction_type'}, inplace=True)
+        if 'cumulative_pnl_absolute' in data.columns:
+            data.rename(columns={'cumulative_pnl_absolute': 'pnl_cumulative_absolute'}, inplace=True)
+        if 'Drawdown_%' in data.columns:
+            data.rename(columns={'Drawdown_%': 'drawdown_percentage'}, inplace=True)
         if 'Drawdown %' in data.columns:
             data.rename(columns={'Drawdown %': 'drawdown_percentage'}, inplace=True)
+        data['entry_transaction_type'] = data['entry_transaction_type'].replace({'BUY': 0, 'SELL': 1})
 
         data = data.dropna(subset=['pnl_absolute'])
         
@@ -170,8 +199,9 @@ class StatergyAnalysis:
         return round(avg_returns, 2), round(avg_returns_pct, 2)
     
     def drawdown(self):
-        self.csv_data['cum_max'] = self.csv_data['equity_curve'].cummax()
-        self.csv_data['drawdown'] = self.csv_data['equity_curve'] - self.csv_data['cum_max']
+        self.csv_data['equity_pnl'] = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
+        self.csv_data['cum_max'] = self.csv_data['equity_pnl'].cummax()
+        self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']
         self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['cum_max'])*100
     
         return round(self.csv_data['drawdown'].min(), 2), round(self.csv_data['drawdown_pct'].min(), 2)
@@ -284,22 +314,17 @@ class StatergyAnalysis:
         daily_positive = self.daily_returnts[self.daily_returnts['pnl_absolute'] > 0]['pnl_absolute'].sum()
         daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
         return round(daily_positive/daily_neg * -1 , 2)
-    
-    def trades_pie(self):
-        Employee = ['Short', 'Long']
-        Salary = [self.num_tradeType('short'), self.num_tradeType('long')]
-        f, ax = plt.subplot()
-        # Pie Chart
-        plt.pie(Salary, labels=Employee,
-                autopct='%1.1f%%', pctdistance=0.85)
+ 
+    def avgProfit(self, daily_returns, i):
+        wins = None
+        if i == 1:
+            wins = daily_returns[daily_returns['pnl_absolute']>=0]
+        else:
+            wins = daily_returns[daily_returns['pnl_absolute'] <0]
+        prof = wins['pnl_absolute'].tolist()
+        return round(mean(prof), 2)
         
-        centre_circle = plt.Circle((0, 0), 0.70, fc='white')
-        fig = plt.gcf()
         
-        # Adding Circle in Pie chart
-        fig.gca().add_artist(centre_circle)
-        plt.title('Trades')
-        plt.show()
 
     def htmap(self):
         
