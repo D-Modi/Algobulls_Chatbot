@@ -7,27 +7,8 @@ from  matplotlib.colors import LinearSegmentedColormap
 from statistics import mean 
 
 class StatergyAnalysis:
-
-    def __init__(self, csv_filepath):
-        self.csv_data = self.new_csv(csv_filepath, 0)
-        self.daily_returnts = None
-        self.monthly_returns = None
-        self.daily_ana()
-        self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
-        #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
-        self.equity_curve_value = self.csv_data['equity_curve'].tolist()
-        self.risk_free_rate = 0.07
-        #self.initial_investment = self.equity_curve_value[-1]
-        self.initial_investment = 150000
-        self.equity_PctChange = None
-        self.annual_std = 0
-        self.annual_mean = 0
-        self.drawdown_max, self.drawdown_pct = self.drawdown()
-        self.daily_equity_Curve()
-        self.num_wins = self.num_profit(self.csv_data)
-        self.numTrades = len(self.csv_data)
     
-    def __init__(self, csv_data, i):
+    def __init__(self, csv_data, i=0):
         self.csv_data = self.new_csv(csv_data , i)
         self.daily_returnts = None
         self.monthly_returns = None
@@ -325,7 +306,6 @@ class StatergyAnalysis:
         return round(mean(prof), 2)
         
         
-
     def htmap(self):
         
         data = np.array(self.daily_returnts['pnl_absolute'].tolist())
