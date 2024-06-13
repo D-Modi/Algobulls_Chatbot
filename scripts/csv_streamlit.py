@@ -62,9 +62,9 @@ def daisply(daily_returns, Quant, Alanyze):
     st.pyplot(freq_hist)
     
     with st.expander("More information"):
-        st.write(f"Number of ***trading {Quant}s***: {Alanyze.trading_num(daily_returns)}")
-        st.write(f"Number of ***Profitable {Quant}s***: {Alanyze.num_profit(daily_returns)} {Quant}")
-        st.write(f"Number of ***Loss Making {Quant}s***: {Alanyze.num_loss(daily_returns)} {Quant} ")
+        st.write(f"Number of ***trading {Quant}s***: {Alanyze.trading_num(daily_returns)}")        
+        st.write(f"Number of ***Profitable {Quant}s***: {Alanyze.num_loss(daily_returns, 1)} {Quant}")
+        st.write(f"Number of ***Loss Making {Quant}s***: {Alanyze.num_loss(daily_returns, -1)} {Quant} ")
         st.write(f"***Most Profitable {Quant}***: {Alanyze.max_profit(daily_returns)[1]}")
         st.write(f"Maximum ***Gains*** in a {Quant}: {Alanyze.max_profit(daily_returns)[0]}")
         st.write(f"***Least Profitable {Quant}***: {Alanyze.min_profit(daily_returns)[1]}")

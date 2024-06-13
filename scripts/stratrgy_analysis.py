@@ -8,17 +8,16 @@ from statistics import mean
 
 class StatergyAnalysis:
     
-    def __init__(self, csv_data, i=0):
+    def __init__(self, csv_data, i=0, number=40000):
         self.csv_data = self.new_csv(csv_data , i)
         self.daily_returnts = None
         self.monthly_returns = None
         self.daily_ana()
-        self.initial_investment = 150000
+        self.initial_investment = number#
         self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
         #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
         self.equity_curve_value = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
         self.risk_free_rate = 0.07
-        #self.initial_investment = self.equity_curve_value[-1]
         
         self.equity_PctChange = None
         self.annual_std = 0
@@ -304,7 +303,6 @@ class StatergyAnalysis:
             wins = daily_returns[daily_returns['pnl_absolute'] <0]
         prof = wins['pnl_absolute'].tolist()
         return round(mean(prof), 2)
-        
         
     def htmap(self):
         
