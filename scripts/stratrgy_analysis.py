@@ -10,10 +10,10 @@ class StatergyAnalysis:
     
     def __init__(self, csv_data, i=0, number=40000):
         self.csv_data = self.new_csv(csv_data , i)
+        self.initial_investment = number
         self.daily_returnts = None
         self.monthly_returns = None
         self.daily_ana()
-        self.initial_investment = number#
         self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
         #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
         self.equity_curve_value = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
@@ -179,7 +179,8 @@ class StatergyAnalysis:
         return round(avg_returns, 2), round(avg_returns_pct, 2)
     
     def drawdown(self):
-        self.csv_data['equity_pnl'] = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
+        self.csv_data['pnl_cumulative'] = self.csv_data['pnl_absolute'].cumsum()
+        self.csv_data['equity_pnl'] = self.csv_data['pnl_cumulative'] + self.initial_investment
         self.csv_data['cum_max'] = self.csv_data['equity_pnl'].cummax()
         self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']
         self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['cum_max'])*100
@@ -200,7 +201,7 @@ class StatergyAnalysis:
 
     def roi(self, monthly_returns):
         ROI = monthly_returns[['cum_pnl']].iloc[-1]
-        ROI_perct = round((ROI.values[0]/150000)*100,2)
+        ROI_perct = round((ROI.values[0]/self.initial_investment)*100,2)
         return round(ROI.values[0], 2), round(ROI_perct, 2)
 
     def num_profit(self, returns):
