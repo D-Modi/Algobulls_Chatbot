@@ -7,6 +7,7 @@ import seaborn as sns
 from stratrgy_analysis import StatergyAnalysis
 import pandas as pd
 import numpy as np
+import base64
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False 
@@ -24,6 +25,10 @@ if 'rt' not in st.session_state:
 def click_button():
     st.session_state.clicked = not st.session_state.clicked
     
+def click_button_return():
+    st.session_state.clicked = not st.session_state.clicked
+    st.session_state.button = False
+    
 def click_button_disp(s, r):
     st.session_state.button = True
     st.session_state['Time'] = s
@@ -33,6 +38,10 @@ def click_button_arg(a,b):
     st.session_state.clicked = not st.session_state.clicked
     st.session_state['ana'] = a
     st.session_state['stra'] = b
+
+def get_image_base64(image_path):
+    with open(image_path, "rb") as img_file:
+        return base64.b64encode(img_file.read()).decode()
     
 def daisply(daily_returns, Quant, Alanyze):
     if Quant == "Day":
@@ -78,6 +87,7 @@ def display(weekday_returns, Alanyze):
     st.table(tab)
         
 def next_page( Analysis, code):
+    
     st.title("Analysis")
     daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
 
@@ -98,7 +108,7 @@ def next_page( Analysis, code):
     tab1, tab2, tab3 = st.tabs(["Reords", "Analytics", "Returns"])
     
     with tab3:
-        Dur = [213*2, 213, 101,22, 11, 4]
+        Dur = [252*2, 252, 101,22, 11, 4]
         Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '30 Days', '15Days', '3 Days']
         returns = [f"{Analysis.Treturns(len(Analysis.daily_returnts)+1)[1]}%"]
         for i in Dur:
@@ -160,7 +170,7 @@ def next_page( Analysis, code):
             quat = Analysis.win_rate(last_month_data)
             last_month_data = daily_returns.iloc[-101:]
             half = Analysis.win_rate(last_month_data)
-            last_month_data = daily_returns.iloc[-213:]
+            last_month_data = daily_returns.iloc[-252:]
             yr = Analysis.win_rate(last_month_data)
             
             c1, c2 = st.columns(2)
@@ -174,8 +184,8 @@ def next_page( Analysis, code):
                 
                 bars = ax0.barh(ind, values, color=colors)
                 ax0.bar_label(bars, label_type="center")
-                avg_profit = Analysis.avgProfit(Analysis.csv_data, 1)
-                avg_loss = Analysis.avgProfit(Analysis.csv_data, -1)
+                avg_profit = Analysis.avgProfit(1, Analysis.csv_data)[0]
+                avg_loss = Analysis.avgProfit(-1, Analysis.csv_data)[0]
                 ax0.axvline(avg_profit, ls='--', ymax=0.5, color='k', label='Avg Profit')
                 ax0.axvline(avg_loss, ymin= 0.5, ls='--', color='k', label='Avg Loss')
                 ax0.text(avg_profit, 0.75, f'Avg Profit: {avg_profit}', color='k', va='top', ha='left')
@@ -185,8 +195,8 @@ def next_page( Analysis, code):
                 ax0.set_title('Profit/Loss Analysis')
                 st.pyplot(fig0)
                 
-                st.write(f"***Average loss per losing trade***: {Analysis.avgProfit(Analysis.csv_data, -1)}")
-                st.write(f"***Average gain per winning trade***: {Analysis.avgProfit(Analysis.csv_data, 1)}")
+                st.write(f"***Average loss per losing trade***: {avg_profit}")
+                st.write(f"***Average gain per winning trade***: {avg_loss}")
                 st.write(f"***Maximum Gains***: {Analysis.max_profit(Analysis.csv_data)[0]}")
                 st.write(f"***Minimum Gains***: {Analysis.min_profit(Analysis.csv_data)[0]}")
                 st.write (f"***Average Trades per Day***: {Analysis.avgTrades(daily_returns)}")
@@ -238,6 +248,9 @@ def next_page( Analysis, code):
             #plt.tight_layout()  # Adjust layout to prevent overlapping labels
  
     with tab1:
+        
+        bw = Analysis.htmap(90)        
+        
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
             a = st.button("Daily", use_container_width=True, on_click=click_button_disp, args=["Daily", daily_returns])
@@ -254,8 +267,7 @@ def next_page( Analysis, code):
                 daisply(st.session_state['rt'], st.session_state["Time"], Analysis)
             else:
                 display(weekday_returns, Analysis)
-        else:
-            Analysis.htmap()
+        
             
 if not st.session_state.clicked:
     st.set_page_config(layout="wide")
@@ -266,7 +278,7 @@ if not st.session_state.clicked:
     for file in glob.glob(path, recursive=True):
         found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
         Files.append(found)
-
+    default = 150000
     row1 = st.columns(3)
     row2 = st.columns(3)
     i = 0
@@ -336,10 +348,14 @@ if not st.session_state.clicked:
             tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[Analysis, stratergy])
         
 if st.session_state.clicked:
-    next_page(st.session_state['ana'], st.session_state['stra'])
     with st.sidebar:
-        st.button("Return to cards", on_click=click_button)
-                    
+        st.button("Return to cards", on_click=click_button_return)
+        # number = st.number_input("Enter initial investment", value=150000)
+        # st.write (f"Inital investment {number}") 
+        # Analysis.initial_investment = number 
+        # st.write()
+    next_page(st.session_state['ana'], st.session_state['stra'])
+
 
 
 
