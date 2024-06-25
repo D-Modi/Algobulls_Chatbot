@@ -184,8 +184,8 @@ def next_page( Analysis, code):
                 
                 bars = ax0.barh(ind, values, color=colors)
                 ax0.bar_label(bars, label_type="center")
-                avg_profit = Analysis.avgProfit(1, Analysis.csv_data)[0]
-                avg_loss = Analysis.avgProfit(-1, Analysis.csv_data)[0]
+                avg_profit = Analysis.avgProfit(Analysis.csv_data, 1)[0]
+                avg_loss = Analysis.avgProfit(Analysis.csv_data, 1)[0]
                 ax0.axvline(avg_profit, ls='--', ymax=0.5, color='k', label='Avg Profit')
                 ax0.axvline(avg_loss, ymin= 0.5, ls='--', color='k', label='Avg Loss')
                 ax0.text(avg_profit, 0.75, f'Avg Profit: {avg_profit}', color='k', va='top', ha='left')
