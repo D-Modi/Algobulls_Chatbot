@@ -339,7 +339,7 @@ class StatergyAnalysis:
         daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
         return round(daily_positive/daily_neg * -1 , 2), daily_neg, daily_positive
  
-    def avgProfit(self, i, daily_returns=None):
+    def avgProfit(self, daily_returns=None, i=1):
         if daily_returns is None:
             daily_returns = self.csv_data
         wins = None
