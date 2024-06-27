@@ -13,76 +13,132 @@ class merge_csv:
     def __init__(self, csv1, csv2):
         self.data1 = csv1
         self.data2 = csv2
-        self.initial_investment = self.data1.initial_investment
-        # self.daily_returns_combined = pd.concat([self.data1.daily_returnts, self.data2.daily_returnts]) # Only for "pnl_absolute"; not for cum_pnl
+        self.initial_investment = self.data1[28]
+        self.data1_csv = self.data1[1]
+        self.data2_csv = self.data2[1]
+        # self.daily_returns_combined = pd.concat([self.data1[2], self.data2[2]]) # Only for "pnl_absolute"; not for cum_pnl
         # self.daily_returns_combined['cum_pnl'] = self.daily_returns_combined['pnl_absolute'].cumsum()
-        self.daily_returns_combined = self.merged_df(self.data1.daily_returnts, self.data2.daily_returnts)
-        self.combined_mean = (self.data1.annual_mean * self.data1.numTrades + self.data2.annual_mean * self.data2.numTrades )/ (self.data1.numTrades + self.data2.numTrades)
-        self.combined_variance = (((self.data1.numTrades - 1) * self.data1.annual_std**2 + (self.data2.numTrades - 1) * self.data2.annual_std **2) +  self.data1.numTrades* (self.data1.annual_mean - self.combined_mean)**2 +  self.data2.numTrades * (self.data2.annual_mean - self.combined_mean)**2) / (self.data1.numTrades + self.data2.numTrades - 1)
-        self.risk_free_rate = self.data1.risk_free_rate
+        self.daily_returns_combined = self.merge_day(self.data1[2], self.data2[2])
+        self.daily_combined_mean = (self.data1[27] * len(self.data1[2])+ self.data2[27] * len(self.data2[2]) )/ (len(self.data1[2])+ len(self.data2[2]))
+        self.daily_combined_variance = (((len(self.data1[2])-1) * self.data1[26]**2 + (len(self.data2[2])-1) * self.data2[26] **2) +  len(self.data1[2]) * (self.data1[27] - self.daily_combined_mean)**2 +  len(self.data2[2]) * (self.data2[27] - self.daily_combined_mean)**2) / (len(self.data1[2])+ len(self.data2[2])-2)
+        self.daily_combined_variance = self.daily_combined_variance ** 0.5
+        self.combined_mean = (self.data1[45] * len(self.data1[1])+ self.data2[45] * len(self.data2[1]) )/ (len(self.data1[1])+ len(self.data2[1]))
+        self.combined_variance = (((len(self.data1[1])-1) * self.data1[46]**2 + (len(self.data2[1])-1) * self.data2[46] **2) +  len(self.data1[1]) * (self.data1[45] - self.combined_mean)**2 +  len(self.data2[1]) * (self.data2[45] - self.combined_mean)**2) / (len(self.data1[1])+ len(self.data2[1])-2)
+        self.combined_variance = self.combined_variance ** 0.5
+        self.risk_free_rate = self.data1[29]
         self.Yearly_Vola = round(self.combined_variance *100, 2)
-        self.sharpe_ratio = round((self.combined_mean - self.risk_free_rate)/ self.combined_variance, 2)
-        self.min_DDPct = min(self.data1.drawdown_pct, self.data2.drawdown_pct)
-        self.Calmar_ratio = self.combined_mean / self.min_DDPct * -100
+        self.sharpe_ratio = round((self.daily_combined_mean *np.sqrt(252) - self.risk_free_rate)/ self.daily_combined_variance, 2)
+        #self.min_DDPct = min(self.data1[8], self.data2[8])
         #self.equity = pd.concat([self.data1.equity, self.data2.equity])
-        transition_equity_change = (self.data2.csv_data['equity_curve'].iloc[0] - self.data1.csv_data['equity_curve'].iloc[-1]) / self.data1.csv_data['equity_curve'].iloc[-1]
+        transition_equity_change = (self.data2_csv['equity_curve'].iloc[0] - self.data1_csv['equity_curve'].iloc[-1]) / self.data1_csv['equity_curve'].iloc[-1]
         # self.equity_PctChange = self.data1.equity_PctChange.copy()
         # self.equity_PctChange.loc[len(self.equity_PctChange)] = transition_equity_change
         # self.equity_PctChange = self.equity_PctChange.append(self.data2.equity_PctChange, ignore_index=True)
-        self.equity_PctChange = self.data1.equity_PctChange.copy()
+        self.equity_PctChange = self.data1[30].copy()
         self.equity_PctChange = pd.concat([self.equity_PctChange, pd.Series([transition_equity_change])], ignore_index=True)
-        self.equity_PctChange = pd.concat([self.equity_PctChange, self.data2.equity_PctChange], ignore_index=True)
+        self.equity_PctChange = pd.concat([self.equity_PctChange, self.data2[30]], ignore_index=True)
         self.sortino_ratio = self.Sortino_Ratio()
-        _,_ = self.data2.drawdown(i=1, max_eq=self.data1.csv_data['cum_max'].iloc[-1])
-        self.drawdown_column = pd.concat([self.data1.csv_data[['drawdown', 'drawdown_pct']], self.data2.csv_data[['drawdown', 'drawdown_pct']]])
+        self.drawdown_data2(max_eq=self.data1_csv['cum_max'].iloc[-1])
+        self.drawdown_column = pd.concat([self.data1_csv[['drawdown', 'drawdown_pct']], self.data2_csv[['drawdown', 'drawdown_pct']]])
         self.drawdown_max = round(self.drawdown_column['drawdown'].min(), 2)
         self.drawdown_pct = round(self.drawdown_column['drawdown_pct'].min(), 2)
-        self.HIT = round((self.data1.num_wins + self.data2.num_wins)/(self.data1.numTrades + self.data2.numTrades)* 100, 2)
-        self.long = self.data1.long + self.data2.long
-        self.short = self.data1.short +self.data2.short
-        self.avgNumTrades = round((self.data1.numTrades + self.data2.numTrades)/(len(self.data1.daily_returnts) + len(self.data2.daily_returnts)), 2)
-        self.ProfitFactor = round((self.data1.pos + self.data2.pos)/(self.data1.neg + self.data2.neg)* -1 , 2) 
-        self.maxProfit = max([self.data1.profit, self.data2.profit], key=lambda lst: lst[0])
-        self.maxLoss = min([self.data1.loss, self.data2.loss], key=lambda lst: lst[0])  
-        self.monthly_ret = self.merged_df(self.data1.monthly_returns, self.data2.monthly_returns)
-        self.csv_data_combined = pd.concat([self.data1.csv_data, self.data2.csv_data])
+        self.Calmar_ratio = round(self.daily_combined_mean*np.sqrt(252) / self.drawdown_pct * -100, 2)
+        self.HIT = round((self.data1[16] + self.data2[16])/(len(self.data1[1])+ len(self.data2[1]))* 100, 2)
+        self.long = self.data1[14] + self.data2[14]
+        self.short = self.data1[13] +self.data2[13]
+        self.avgNumTrades = round((len(self.data1[1])+ len(self.data2[1]))/(len(self.data1[2]) + len(self.data2[2])), 2)
+        self.ProfitFactor = round((self.data1[21] + self.data2[21])/(self.data1[22] + self.data2[22])* -1 , 2) 
+        #self.maxProfit = max([self.data1.profit, self.data2.profit], key=lambda lst: lst[0])
+        #self.maxLoss = min([self.data1.loss, self.data2.loss], key=lambda lst: lst[0])  
+        self.monthly_ret = self.merged_df(self.data1[3], self.data2[3])
+        self.csv_combined = pd.concat([self.data1_csv, self.data2_csv])
+        
     def merged_df(self, df1, df2):
         dt = df1.index[-1]
-        cumsum = df1['cum_pnl'].iloc[-1]
         result_df = df1.add(df2, fill_value=0)
       
-        if 'cum_pnl' in result_df.columns:   
+        if 'cum_pnl' in result_df.columns: 
+            cumsum = df1['cum_pnl'].iloc[-1]  
             result_df.loc[result_df.index > dt, 'cum_pnl'] += cumsum
+        if 'roi' in result_df.columns: 
+            roi_t = df1['roi'].iloc[-1]  
+            result_df.loc[result_df.index > dt, 'roi'] += roi_t
+            
         return result_df
     
-    def max_min_Profit(self, i, returns1,returns2):
-        MaxProfits1 = self.data1.max_profit(returns1, i)
-        MaxProfits2 = self.data1.max_profit(returns2, i)
-        if i == 1:
-            if MaxProfits1[1] == returns1.index[-1] or MaxProfits2[1] == returns2.index[0]:
-                if returns1.index[-1] == returns2.index[0]:
-                    Maxprofits3 = returns1['pnl_absolute'].iloc[-1] + returns2['pnl_absolute'].iloc[0]
-                    if max(MaxProfits1, MaxProfits2, Maxprofits3) == Maxprofits3:
-                        return [Maxprofits3, returns1.index[-1]]
-                    if MaxProfits2[1] == returns2[0]:
-                        MP = self.data1.max_profit(returns2[1:]. i)
-                        return max([MP, MaxProfits1], key=lambda lst: lst[0])
-                    elif MaxProfits1[1] == returns1.index[-1] :
-                        MP = self.data1.max_profit(returns1[:-1], i)
-                        return max([MP, MaxProfits2], key=lambda lst: lst[0])
+    def merged_monthly(self, df1, df2):
+        if df1.index[-1] != df2.index[0]:
+            if 'cum_pnl' in df1.columns:
+                df2['cum_pnl'].iloc[0] += df1['cum_pnl'].iloc[-1]
+            if 'roi' in df1.columns:
+                df2['roi'].iloc[0] += df1['roi'].iloc[-1]
+            result_df = pd.concat([df1, df2])
+
+        return result_df
     
-            return max([MaxProfits1, MaxProfits2], key=lambda lst: lst[0])
+    def merge_day(self, df1, df2):
+        result_df = pd.concat([df1, df2])
+        if 'cum_pnl' in result_df.columns:
+            cumsum = df1['cum_pnl'].iloc[-1]   
+            result_df.loc[result_df.index > df1.index[-1], 'cum_pnl'] += cumsum
+        if 'roi' in result_df.columns: 
+            roi_t = df1['roi'].iloc[-1]  
+            result_df.loc[result_df.index > df1.index[-1], 'roi'] += roi_t
+        return result_df   
+     
+    def max_profit(self, returns, i=1):
+        if i ==1:
+            max_profits = returns['pnl_absolute'].max()
+            max_profitable_day = returns['pnl_absolute'].idxmax()
         else:
-                if MaxProfits1[0] < MaxProfits2[0]:
-                    return MaxProfits1
-                else:
-                    return MaxProfits2
+            max_profits = returns['pnl_absolute'].min()
+            max_profitable_day =  returns['pnl_absolute'].idxmin()
+        maxi = [max_profits, max_profitable_day]
+        #self.MaxProfits = maxi
+        return maxi
+
+    def max_min_Profit(self, i, returns1,returns2, MaxProfits1, MaxProfits2, df):
+        #MaxProfits1 = self.data1.max_profit(returns1, i)
+        #MaxProfits2 = self.data1.max_profit(returns2, i)
+        
+        if i == 1:
+            MP_temp = max([MaxProfits1, MaxProfits2], key=lambda lst: lst[0])
+            if returns1.index[-1] == returns2.index[0]:
+                MaxProfit3  = [returns1['pnl_absolute'].iloc[-1] + returns2['pnl_absolute'].iloc[0], returns1.index[-1]]
+                MP = max(MaxProfits1[0], MaxProfits2[0], MaxProfit3[0])
+                if MP == MaxProfit3[0]:
+                    return MaxProfit3
+                if MP == MaxProfits1[0]:
+                    if MaxProfits1[1] != returns1.index[-1]:
+                        return MaxProfits1   
+                if MP == MaxProfits2[0]:
+                    if MaxProfits2[1] != returns1.index[-1]:
+                        return MaxProfits2  
+                return self.max_profit(df, i)              
+            else:
+                return MP_temp
+        else:
+            MP_temp = min([MaxProfits1, MaxProfits2], key=lambda lst: lst[0])
+            if returns1.index[-1] == returns2.index[0]:
+                MaxProfit3  = returns1['pnl_absolute'].iloc[-1] + returns2['pnl_absolute'].iloc[0]
+                MP = min(MaxProfits1[0], MaxProfits2[0], MaxProfit3)
+                if MP == MaxProfit3:
+                    return MP, returns1.index[-1]
+                if MP == MaxProfits1[0]:
+                    if MaxProfits1[1] != returns1.index[-1]:
+                        return MaxProfits1   
+                if MP == MaxProfits2[0]:
+                    if MaxProfits2[1] != returns1.index[-1]:
+                        return MaxProfits2  
+                return self.max_profit(df, i)              
+            else:
+                return MP_temp  
 
 
     def Sortino_Ratio(self):
         downside_returns = np.where(self.equity_PctChange < 0, self.equity_PctChange, 0)
         downside_deviation = downside_returns.std() * np.sqrt(252)
-        return round((self.combined_mean - self.risk_free_rate) / downside_deviation, 2)
+        return round((self.daily_combined_mean*np.sqrt(252) - self.risk_free_rate) / downside_deviation, 2)
     
     def Comb_WinRate(self, daily_returns1, dailyreturns2):
         w1 = self.data1.win_rate(daily_returns1)
@@ -134,41 +190,61 @@ class merge_csv:
         return image_path, box_width
         
         
-    def avgReturns_merged(self, df1, df2):
-        mean1, pct1 = avg_returns(df1)
-        mean2, pct2 = avg_returns(df2)
+    def avgReturns_merged(self, avgR1, avgR2, df1, df2):
+        mean1, pct1 = avgR1[0], avgR1[1]
+        mean2, pct2 = avgR2[0], avgR2[1]
         dt = df1.index[-1]
         cumsum = df1.loc[dt, 'cum_pnl']
         
         count_rows = len(df2[df2.index > dt])
         avg_returns = (mean1 * len(df1) + mean2 * len(df2) + cumsum * count_rows)/(len(df1) + len(df2)- len(df2[df2.index == dt]))
-        avg_returns_pct = (pct1 * len(df1) + pct2 * len(df2) + cumsum/self.data1.initial_investment*100* count_rows)/(len(df1) + len(df2)- len(df2[df2.index == dt]))
+        avg_returns_pct = (pct1 * len(df1) + pct2 * len(df2) + cumsum/self.initial_investment*100* count_rows)/(len(df1) + len(df2)- len(df2[df2.index == dt]))
     
-        return round(avg_returns, 2), round(avg_returns_pct, 2)
+        return [round(avg_returns, 2), round(avg_returns_pct, 2)]
+    
+    def round_calc(self, retrurn):
+        profit = np.zeros(12)
+        for r in retrurn:
+            val = int(r // 1000 + 6)
+            #print(val)
+            if val < 0:
+                val = 0
+            if val> 11:
+                val = 11
+            profit[val] +=1
+        return profit
+    
+    def comb_tradingNum(self, df1, df2, r1, r2):
+        if df1.index[-1] == df2.index[0]:
+            return r1 + r2 -1
+        return r1 + r2
     
     def freq_combined(self, df1, df2, r1, r2):
                 
         if df1.index[-1] == df2.index[0]:
             ra = [df1['pnl_absolute'].iloc[-1] + df2['pnl_absolute'].iloc[0]]
             rs = np.array([df1['pnl_absolute'].iloc[-1], df2['pnl_absolute'].iloc[0]])
-            r4 = self.data1.round_calc(ra)
-            r5 = self.data1.round_calc(rs)
+            r4 = self.round_calc(ra)
+            r5 = self.round_calc(rs)
             return (r1 + r2 + r4- r5)
         else:
             return r1 + r2
         
     def combined_numLoss(self,df1, df2, r1, r2, i):
+            
             if df1.index[-1] == df2.index[0]:
                 ra = df1['pnl_absolute'].iloc[-1] + df2['pnl_absolute'].iloc[0]
                 ra = 1 if ra == 0 else ra
                 t = 1 if ra*i > 0 else 0
                 rs = np.array([df1['pnl_absolute'].iloc[-1], df2['pnl_absolute'].iloc[0]])
-                for i in rs:
-                   k= np.where(np.sign(i) == 0, 1, np.sign(i))
+                for j in rs:
+                   k= np.where(np.sign(j) == 0, 1, np.sign(j))
                    if i*k > 0:
                        t-=1
+                #print(r1, r2, t, i,  r1 + r2 + i*t) 
                 return (r1 + r2 + i*t)        
             else:
+                #print(r1, r2,i, r1 + r2)
                 return(r1 + r2)
             
     def avgProfit_merge(self, df1, df2,a1,a2, i):
@@ -190,29 +266,78 @@ class merge_csv:
                         tot += rs[1]
                         elem +=1
                     print(tot)
-                    return (tot)/(elem) 
+                    return round((tot)/(elem), 2) , elem
                 else:
                     if rs[0] < 0 and rs[1] <0:
-                        return tot/(n1 + n2)
+                        return round(tot/(n1 + n2), 2), n1 + n2
                     else: 
                         positive_element = rs[0] if rs[0] > 0 else rs[1]
                         print(tot- positive_element)
-                        return (tot - positive_element)/(n1 + n2-1)
+                        return round((tot - positive_element)/(n1 + n2-1), 2) , n1 + n2 -1
             else:
                 if sum < 0:
                     if rs[0] < 0 and rs[1] < 0:
-                        return tot/(n1 + n2 -1)
+                        return round(tot/(n1 + n2 -1), 2), n1 + n2 -1
                     else:
                         positive_element = rs[0] if rs[0] > 0 else rs[1]
-                        return (tot + positive_element)/(n1 + n2)
+                        return round((tot + positive_element)/(n1 + n2), 2), n1 + n2
                 else:
                     if rs[0]  > 0 and rs[1] > 0:
-                        return tot/(n1 + n2)
+                        return round(tot/(n1 + n2), 2), n1 + n2
                     else: 
                         negative_element = rs[0] if rs[0] < 0 else rs[1]
-                        return (tot - negative_element)/(n1 + n2-1)
+                        return round((tot - negative_element)/(n1 + n2-1), 2), n1+n2-1
         else:
-            return tot/(n1 + n2)
+            return round(tot/(n1 + n2), 2), n1+n2
+        
+    def merged_max_cons(self, df1, df2, r1, r2, i):
+        if i == 1:
+            data = df2[df2['pnl_absolute'] < 0]
+            if len(data) > 0:
+                first_negative_index = df2[df2['pnl_absolute'] < 0].index[0]
+                first_negative_row = df2.index.get_loc(first_negative_index)
+            else:
+                first_negative_row = len(df2)
+
+            # Identify the index of the last negative value in 'pnl'
+            data = df1[df1['pnl_absolute'] < 0] 
+            if len(data) > 0:
+                last_negative_index = df1[df1['pnl_absolute'] < 0].index[-1]
+                last_negative_row = df1.index.get_loc(last_negative_index)
+            else:
+                last_negative_row = -1
+        else:
+            first_negative_index = df2[df2['pnl_absolute'] > 0].index[0]
+            first_negative_row = df2.index.get_loc(first_negative_index)
+
+            # Identify the index of the last negative value in 'pnl'
+            last_negative_index = df1[df1['pnl_absolute'] > 0].index[-1]
+            last_negative_row = df1.index.get_loc(last_negative_index)
+            
+        positive_rows_from_start = first_negative_row 
+        positive_rows_from_end = len(df1) - (last_negative_row + 1)
+        total_positive_rows = positive_rows_from_end + positive_rows_from_start
+        return  (r1, r2, total_positive_rows)
+    
+    def winR(self, df1, df2, r1, r2, d):
+        if len(df2)>d*-1:
+            return r2
+        rem = len(df2)
+        per = df1.iloc[d:].head(rem)
+        wins = len(per[per['pnl_absolute']>0])
+        fin = (r1 * d*(-1) + r2 * len(df2) - wins)/d*-1
+        return fin
+          
+    def drawdown_data2(self, max_eq=0 ):
+
+        self.data2_csv['cum_max'] = self.data2_csv['equity_curve'].cummax()
+        self.data2_csv.loc[self.data2_csv['cum_max'] <= max_eq, 'cum_max'] = max_eq  
+        #self.data2_csv['drawdown'] = self.data2_csv['equity_pnl'] - self.data2_csv['cum_max']        
+        self.data2_csv['drawdown'] = self.data2_csv['equity_curve'] - self.data2_csv['cum_max']
+        self.data2_csv['drawdown_pct'] = self.data2_csv['drawdown_percentage']
+            
+        # return round(self.data2_csv['drawdown'].min(), 2), round(self.data2_csv['drawdown_pct'].min(), 2)
+        # _,_ = self.data2.drawdown(i=1, max_eq=self.data1_csv['cum_max'].iloc[-1])
         
         
         
@@ -220,10 +345,7 @@ class merge_csv:
         
         
         
-        
-        
-        
-        
+
         
         
         
