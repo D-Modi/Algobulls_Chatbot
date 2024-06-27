@@ -12,6 +12,7 @@ import sqlite3
 import pickle
 import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
+from sql import insert_sql, delete_id
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False 
