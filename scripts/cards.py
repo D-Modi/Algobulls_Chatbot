@@ -8,6 +8,10 @@ from stratrgy_analysis import StatergyAnalysis
 import pandas as pd
 import numpy as np
 import base64
+import sqlite3
+import pickle
+import seaborn as sn
+from  matplotlib.colors import LinearSegmentedColormap
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False 
@@ -21,6 +25,8 @@ if 'Time' not in st.session_state:
     st.session_state['Time'] = None
 if 'rt' not in st.session_state:
     st.session_state['rt'] = None
+if 'i' not in st.session_state:
+    st.session_state['i'] = None
     
 def click_button():
     st.session_state.clicked = not st.session_state.clicked
@@ -29,10 +35,11 @@ def click_button_return():
     st.session_state.clicked = not st.session_state.clicked
     st.session_state.button = False
     
-def click_button_disp(s, r):
+def click_button_disp(s, r, i):
     st.session_state.button = True
     st.session_state['Time'] = s
     st.session_state['rt'] = r
+    st.session_state['i'] = i
     
 def click_button_arg(a,b):
     st.session_state.clicked = not st.session_state.clicked
@@ -43,53 +50,106 @@ def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
     
-def daisply(daily_returns, Quant, Alanyze):
+def htmap(data, days):        
+    data = np.array(data['pnl_absolute'].tolist())
+    data = data[-1 * days:]
+    m = 5 * int(len(data)/ 5)
+    data = data[:m]
+    data = np.reshape(data, (5, -1))
+    line_width = 0.8
+    linecolor = "White"
+    box_width = int(m*2/25) + 2
+
+    c = ["darkred","red","lightcoral","white", "palegreen","green","darkgreen"]
+    v = [0,.15,.4,.5,0.6,.9,1.]
+    l = list(zip(v,c))
+    cm=LinearSegmentedColormap.from_list('rg',l, N=256)
+
+    hm, ax = plt.subplots(figsize=(box_width,2), dpi=400)
+    sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax) 
+
+    st.write(hm)
+    return box_width
+
+def freq_hist(profit, num):
+    num.insert(0, "")  
+    num.append("")  
+    
+    n = len(profit)
+    r = np.arange(1, n + 1)  
+    width = 0.75
+
+    fig, ax = plt.subplots()
+    ax.bar(r - 0.5, profit, color='b', width=width, align='center', label='Profit')
+    for index, value in enumerate(profit):
+        ax.text(index + 0.5, value + 1, str(value), ha='center')
+    ax.set_xlabel("Value")
+    ax.set_ylabel("Frequency")
+    ax.set_xticks(np.arange(len(num)))
+    ax.set_xticklabels(num, rotation=45)
+    ax.legend()
+
+    return fig
+
+def daisply(daily_returns, Quant, col):
     if Quant == "Day":
         st.header("Daily Analysis")
     else:
         st.header(f"{Quant}ly Analysis")
-        st.write(f"***{Quant}ly Average Returns***: {Alanyze.avgReturns(daily_returns)[0]}")
-        st.write(f"***{Quant}ly Average Returns %***: {Alanyze.avgReturns(daily_returns)[1]}%")
+        st.write(f"***{Quant}ly Average Returns***: {daily_returns[1][0]}")
+        st.write(f"***{Quant}ly Average Returns %***: {daily_returns[1][1]}%")
     
-    days_hist, days_tab = Alanyze.compare_hist(daily_returns, [1000, 2000, 3000, 4000, 5000], Quant)
-    freq_hist = Alanyze.freq_hist(daily_returns, [-5000,-4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000])
+    #days_hist, days_tab = Alanyze.compare_hist(daily_returns, [1000, 2000, 3000, 4000, 5000], Quant)
+    freq_hist_py = freq_hist(daily_returns[2], [-5000,-4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000])
 
-    st.subheader(f"Number of {Quant} of profit/loss above a threshold") 
-    st.pyplot(days_hist)
+
     st.subheader("Frequency of profits")
-    st.pyplot(freq_hist)
+    st.pyplot(freq_hist_py)
     
     with st.expander("More information"):
-        st.write(f"Number of ***trading {Quant}s***: {Alanyze.trading_num(daily_returns)}")
-        st.write(f"Number of ***Profitable {Quant}s***: {Alanyze.num_loss(daily_returns, 1)} {Quant}")
-        st.write(f"Number of ***Loss Making {Quant}s***: {Alanyze.num_loss(daily_returns, -1)} {Quant} ")
-        st.write(f"***Most Profitable {Quant}***: {Alanyze.max_profit(daily_returns)[1]}")
-        st.write(f"Maximum ***Gains*** in a {Quant}: {Alanyze.max_profit(daily_returns)[0]}")
-        st.write(f"***Least Profitable {Quant}***: {Alanyze.min_profit(daily_returns)[1]}")
-        st.write(f"Maximum ***Loss*** in a {Quant}: {Alanyze.min_profit(daily_returns)[0]}")
-        st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(daily_returns, 1)}")
-        st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(daily_returns, -1)}")
+        st.write(f"Number of ***trading {Quant}s***: {daily_returns[3]}")
+        st.write(f"Number of ***Profitable {Quant}s***: {daily_returns[4]} {Quant}")
+        st.write(f"Number of ***Loss Making {Quant}s***: {daily_returns[5]} {Quant} ")
+        st.write(f"***Most Profitable {Quant}***: {daily_returns[6][1]}")
+        st.write(f"Maximum ***Gains*** in a {Quant}: {daily_returns[6][0]}")
+        st.write(f"***Least Profitable {Quant}***: {daily_returns[7][1]}")
+        st.write(f"Maximum ***Loss*** in a {Quant}: {daily_returns[7][0]}")
+        if Quant == "Day":
+            st.write(f"***Max Win Streak***: {daily_returns[8]}")
+            st.write(f"***Max Loss streak***: {daily_returns[9]}")
 
     st.subheader(f"Profit/Loss Data per {Quant}")
-    st.bar_chart(daily_returns, y=['pnl_absolute'], width=500, height=800)
-    if 'cum_pnl' in daily_returns.columns:
+    st.bar_chart(col, y=['pnl_absolute'], width=500, height=800)
+    if 'cum_pnl' in col.columns:
         st.subheader("Cumulative Profit and loss")
-        st.line_chart(daily_returns, y=['cum_pnl'])
+        st.line_chart(col, y=['cum_pnl'])
     st.write(f"")
     st.divider()
  
-def display(weekday_returns, Alanyze):
+def display(weekday_returns, q):
     st.subheader(f"Profit/Loss Data per Day of Week")
-    st.bar_chart(weekday_returns, y=['pnl_absolute'] )
-    st.write(f"***Most Profitable Day*** of the week: {Alanyze.max_profit(weekday_returns)[1]}")
-    st.write(f"***Least Profitable Day*** of the week: {Alanyze.min_profit(weekday_returns)[1]}")
-    tab = weekday_returns['pnl_absolute']
+    st.bar_chart(q[5], y=['pnl_absolute'] )
+    st.write(f"***Most Profitable Day*** of the week: {weekday_returns[0][1]}")
+    st.write(f"***Least Profitable Day*** of the week: {weekday_returns[1][1]}")
+    tab = q[5]['pnl_absolute']
     st.table(tab)
+
+def daily_returns_hist(daily_returns):
+        fig1, ax1 = plt.subplots(figsize=(10, 2))  
+        ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
+        ax1.set_xticks([])
+        ax1.set_yticks([])
+
+        fig2, ax2 = plt.subplots(figsize=(10, 5))  
+        ax2.bar(daily_returns.index, daily_returns['cum_pnl'])
+        ax2.set_xticklabels([])
         
-def next_page( Analysis, code):
+        return fig1, fig2
+    
+def next_page( q, code):
     
     st.title("Analysis")
-    daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
+    #daily_returns, q[3], weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -108,11 +168,11 @@ def next_page( Analysis, code):
     tab1, tab2, tab3 = st.tabs(["Reords", "Analytics", "Returns"])
     
     with tab3:
-        Dur = [252*2, 252, 101,22, 11, 4]
-        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '30 Days', '15Days', '3 Days']
-        returns = [f"{Analysis.Treturns(len(Analysis.daily_returnts)+1)[1]}%"]
-        for i in Dur:
-            returns.append(f"{Analysis.Treturns(i)[1]}%")
+        Dur = [252*2, 252, 101,11, 22, 4]
+        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '15 Days', '30 Days', '3 Days']
+        returns = [f"{q[19][1]}%"]
+        for i in range(len(Dur)):
+            returns.append(f"{q[44-i]}%")
         arr = np.array([Duration, returns]).T
         df = pd.DataFrame(arr, columns=["Duration", "Returns"])
         
@@ -124,32 +184,32 @@ def next_page( Analysis, code):
         
         with bt5:
             st.subheader("Drawdown Curve")
-            st.line_chart(Analysis.csv_data, y='drawdown_percentage', x='Day')
-            st.write(f"***Max Drawdown***: {Analysis.drawdown_max}")
-            st.write(f"***Maximum Drawdowm percentage***: {Analysis.drawdown_pct}")
+            st.line_chart(q[1], y='drawdown_percentage', x='Day')
+            st.write(f"***Max Drawdown***: {q[7]}")
+            st.write(f"***Maximum Drawdowm percentage***: {q[8]}")
             
         with bt4:
             st.subheader("Equity Curve")
-            st.line_chart(Analysis.daily_equity, y='equity_curve')
+            st.line_chart(q[1], y='equity_curve')
             
         with bt3:
             st.subheader("ROI% Curve")
-            st.line_chart( Analysis.daily_returnts, y='roi' )
-            st.write(f"***ROI***: {Analysis.roi(monthly_returns)[0]}")
-            st.write(f"***ROI %***: {Analysis.roi(monthly_returns)[1]}%")
+            st.line_chart( q[2], y='roi' )
+            st.write(f"***ROI***: {q[19][0]}")
+            st.write(f"***ROI %***: {q[19][1]}%")
             
             st.subheader("Monthly Returns and ROI% Over Time")
             fig, ax1 = plt.subplots()
 
-            ax1.bar(monthly_returns.index.values, monthly_returns['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
+            ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
             ax1.set_xlabel('Month')
             ax1.set_ylabel('Monthly Returns', color='b')
             ax1.tick_params(axis='y', labelcolor='b')
-            ax1.set_xticks(monthly_returns.index[::3])
-            ax1.set_xticklabels(monthly_returns.index[::3], rotation=90)
+            ax1.set_xticks(q[3].index[::3])
+            ax1.set_xticklabels(q[3].index[::3], rotation=90)
             
             ax2 = ax1.twinx()
-            ax2.plot(monthly_returns.index.values, monthly_returns['roi'].values, color='r', marker='o', label='ROI%')
+            ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
             ax2.set_ylabel('ROI%', color='r')
             ax2.tick_params(axis='y', labelcolor='r')
             fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
@@ -157,26 +217,26 @@ def next_page( Analysis, code):
             
         with bt2:
             st.subheader("Daily P&L")
-            st.bar_chart(Analysis.daily_returnts, y=['pnl_absolute'])
+            st.bar_chart(q[2], y=['pnl_absolute'])
             st.subheader("Cumulative P&L")
-            st.line_chart(Analysis.daily_returnts, y=['cum_pnl'])
+            st.line_chart(q[2], y=['cum_pnl'])
             
         with bt1:
-            last_month_data = daily_returns.iloc[-6:]
-            week = Analysis.win_rate(last_month_data)
-            last_month_data = daily_returns.iloc[-21:]
-            month = Analysis.win_rate(last_month_data)
-            last_month_data = daily_returns.iloc[-59:]
-            quat = Analysis.win_rate(last_month_data)
-            last_month_data = daily_returns.iloc[-101:]
-            half = Analysis.win_rate(last_month_data)
-            last_month_data = daily_returns.iloc[-252:]
-            yr = Analysis.win_rate(last_month_data)
+            #last_month_data = daily_returns.iloc[-6:]
+            week = q[32]
+            #last_month_data = daily_returns.iloc[-21:]
+            month = q[31]
+            #last_month_data = daily_returns.iloc[-59:]
+            quat = q[35]
+            #last_month_data = daily_returns.iloc[-101:]
+            half = q[34]
+            #last_month_data = daily_returns.iloc[-252:]
+            yr = q[33]
             
             c1, c2 = st.columns(2)
             with c1:
                 fig0, ax0 = plt.subplots(figsize=(10,2))
-                values = [Analysis.max_profit(Analysis.csv_data)[0], Analysis.min_profit(Analysis.csv_data)[0]]
+                values = [q[11], q[12]]
                 x = ["Maximum Profit", "Minimum Profit"]
                 colors = ['r' if value < 0 else 'g' for value in values]
                 ind = np.arange(2)
@@ -184,8 +244,8 @@ def next_page( Analysis, code):
                 
                 bars = ax0.barh(ind, values, color=colors)
                 ax0.bar_label(bars, label_type="center")
-                avg_profit = Analysis.avgProfit(Analysis.csv_data, 1)[0]
-                avg_loss = Analysis.avgProfit(Analysis.csv_data, 1)[0]
+                avg_profit = q[10][0]
+                avg_loss =q[9][0]
                 ax0.axvline(avg_profit, ls='--', ymax=0.5, color='k', label='Avg Profit')
                 ax0.axvline(avg_loss, ymin= 0.5, ls='--', color='k', label='Avg Loss')
                 ax0.text(avg_profit, 0.75, f'Avg Profit: {avg_profit}', color='k', va='top', ha='left')
@@ -194,21 +254,23 @@ def next_page( Analysis, code):
                 ax0.set_yticklabels(x, minor=False)
                 ax0.set_title('Profit/Loss Analysis')
                 st.pyplot(fig0)
+                max_win_streak = int.from_bytes(q[24], byteorder='little')   
+                max_loss_streak = int.from_bytes(q[25], byteorder='little')
                 
                 st.write(f"***Average loss per losing trade***: {avg_profit}")
                 st.write(f"***Average gain per winning trade***: {avg_loss}")
-                st.write(f"***Maximum Gains***: {Analysis.max_profit(Analysis.csv_data)[0]}")
-                st.write(f"***Minimum Gains***: {Analysis.min_profit(Analysis.csv_data)[0]}")
-                st.write (f"***Average Trades per Day***: {Analysis.avgTrades(daily_returns)}")
+                st.write(f"***Maximum Gains***: {values[0]}")
+                st.write(f"***Minimum Gains***: {values[1]}")
+                st.write (f"***Average Trades per Day***: {q[15]}")
                 st.write("\n")
-                st.write(f"***HIT Ratio***: {Analysis.HIT()}")
-                st.write(f"***Profit Factor***: {Analysis.ProfitFactor()}")
-                st.write(f"***Yearly Volatility***: {Analysis.yearlyVola()}")
-                st.write(f"***Max Win Streak***: {Analysis.max_consecutive(Analysis.csv_data, 1)}")
-                st.write(f"***Max Loss streak***: {Analysis.max_consecutive(Analysis.csv_data, -1)}")
-                st.write(f"***Sharpe Ratio:*** {Analysis.Sharpe()}")
-                st.write(f"***Calmar Ratio:*** {Analysis.Calmar()}")
-                st.write(f"***Sortino Ratio:*** {Analysis.Sortino()}")
+                st.write(f"***HIT Ratio***: {q[18]}")
+                st.write(f"***Profit Factor***: {q[20]}")
+                st.write(f"***Yearly Volatility***: {q[23]}")
+                st.write(f"***Max Win Streak***: {max_win_streak}")
+                st.write(f"***Max Loss streak***: {max_loss_streak}")
+                st.write(f"***Sharpe Ratio:*** {q[36]}")
+                st.write(f"***Calmar Ratio:*** {q[37]}")
+                st.write(f"***Sortino Ratio:*** {q[38]}")
                 st.write(f"Win Rate for ***last Week***: {week}")                
                 st.write(f"Win Rate for ***last Month***: {month}")                
                 st.write(f"Win Rate for ***last Quater:*** {quat}")                
@@ -217,7 +279,7 @@ def next_page( Analysis, code):
                 
             with c2:        
                 labels = np.array(['Profitable Trades', 'Loss Making Trades', 'Short Trades', 'Long Trades'])
-                vals = np.array([[Analysis.num_loss(Analysis.csv_data, 1), Analysis.num_loss(Analysis.csv_data, -1)],[ Analysis.num_tradeType('short'), Analysis.num_tradeType('long')]])
+                vals = np.array([[q[16], q[17]],[q[13], q[14]]])
                 size = 0.3
                 
                 figp, axp = plt.subplots()
@@ -228,11 +290,11 @@ def next_page( Analysis, code):
                 axp.legend(wedge, labels, title="Trade Types", loc="upper left")
                 st.pyplot(figp)
                 
-                st.write(f"Number of ***short trades***: {Analysis.num_tradeType('short')}")
-                st.write(f"Number of ***long trades***: {Analysis.num_tradeType('long')}")
-                st.write(f"Number of ***wins***: {Analysis.num_loss(Analysis.csv_data, 1)}")
-                st.write(f"Number of ***losses***: {Analysis.num_loss(Analysis.csv_data, -1)}")
-                st.write(f"***Total*** Number of Trades{len(Analysis.csv_data)}")   
+                st.write(f"Number of ***short trades***: {vals[1][0]}")
+                st.write(f"Number of ***long trades***: {vals[1][1]}")
+                st.write(f"Number of ***wins***: {vals[0][1]}")
+                st.write(f"Number of ***losses***: {vals[0][0]}")
+                st.write(f"***Total*** Number of Trades{vals[1][1] + vals[1][0]}")   
                 
             categories = ['Last Week', 'Last Month', 'Last Quater', 'Last 6 Months', 'Last Year']
             win_rates = [week, month, quat, half, yr]
@@ -249,35 +311,41 @@ def next_page( Analysis, code):
  
     with tab1:
         
-        bw = Analysis.htmap(90)        
+        htmap(q[2], 90)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
-            a = st.button("Daily", use_container_width=True, on_click=click_button_disp, args=["Daily", daily_returns])
+            a = st.button("Daily", use_container_width=True, on_click=click_button_disp, args=["Day", q[47], q[2]])
         with co3:
-            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Monthly", monthly_returns])
+            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Month", q[48], q[3]])
         with co4:
-            a = st.button("Weekly", use_container_width=True, on_click=click_button_disp, args=["Weekly", weekly_returns])
+            a = st.button("Weekly", use_container_width=True, on_click=click_button_disp, args=["Week", q[49], q[4]])
         with co5:
-            a = st.button("Yearly", use_container_width=True, on_click=click_button_disp, args=["Yearly", yearly_returns])
+            a = st.button("Yearly", use_container_width=True, on_click=click_button_disp, args=["Year", q[51], q[6]])
         with co6:
-            a = st.button("Day", use_container_width=True, on_click=click_button_disp, args=["Day"])          
+            a = st.button("Day", use_container_width=True, on_click=click_button_disp, args=["WeekDay"])          
         if st.session_state.button:
-            if st.session_state["Time"] != "Day":
-                daisply(st.session_state['rt'], st.session_state["Time"], Analysis)
+            if st.session_state["Time"] != "WeekDay":
+                daisply(st.session_state['rt'], st.session_state["Time"], st.session_state['i'])
             else:
-                display(weekday_returns, Analysis)
+                display(q[50], q)
         
             
 if not st.session_state.clicked:
     st.set_page_config(layout="wide")
-    path = "files/StrategyBacktestingPLBook-*.csv"
-    print("\nUsing glob.iglob()")
-    Files = []
+    # path = "files/StrategyBacktestingPLBook-*.csv"
+    # print("\nUsing glob.iglob()")
+    # Files = []
 
-    for file in glob.glob(path, recursive=True):
-        found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
-        Files.append(found)
+    # for file in glob.glob(path, recursive=True):
+    #     found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
+    #     Files.append(found)
+    conn = sqlite3.connect('strategy_analysis.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT Id FROM StrategyData ')
+    names  = cursor.fetchall()
+    Files = [row[0] for row in names]
+
     default = 150000
     row1 = st.columns(3)
     row2 = st.columns(3)
@@ -286,17 +354,25 @@ if not st.session_state.clicked:
         tile = col.container(height=400, border=True)
         tile.write("By Algobulls")
         if i < len(Files):
-            stratergy = Files[i]
-            csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
-            Analysis = StatergyAnalysis(csv_path)
-            analysis = Analysis
+            stn = Files[i]
+            #csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
+            #Analysis = StatergyAnalysis(csv_path)
+            #analysis = Analysis
             i += 1
-            daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
+            cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stn,))
+            q  = cursor.fetchone()
+
+            pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
+            q = list(q)
+            for p in pick: 
+                q[p] = pickle.loads(q[p])
+                
+            #daily_returns, q[3], weekday_redddddcturns, weekly_returns, yearly_returns = Analysis.analysis()
 
             custom_aligned_text = f"""
             <div style="display: flex; justify-content: space-between;">
-            <span style="text-align: left;">{stratergy}</span>
-            <span style="text-align: right; color: green">{Analysis.roi(monthly_returns)[1]}</span>
+            <span style="text-align: left;">{stn}</span>
+            <span style="text-align: right; color: green">{q[19][1]}</span>
             </div>
             """
             mark = f"""
@@ -307,14 +383,14 @@ if not st.session_state.clicked:
             """
             tile.write(custom_aligned_text, unsafe_allow_html=True)
             tile.markdown(mark, unsafe_allow_html=True)
-            pnl, cum_pnl = Analysis.daily_returns_hist(monthly_returns)
+            pnl, cum_pnl = daily_returns_hist(q[3])
             tile.pyplot(pnl)
 
             ratios = f"""
             <div style="display: flex; justify-content: space-between;">
-            <span style="text-align: left;">{Analysis.Sharpe()}</span>
-            <span style="text-align: center; flex-grow: 1; text-align: center;"> {Analysis.Calmar()}</span>
-            <span style="text-align: right;">{Analysis.Sortino()}</span>
+            <span style="text-align: left;">{q[36]}</span>
+            <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[37]}</span>
+            <span style="text-align: right;">{q[38]}</span>
             </div>
             """
             cap = f"""
@@ -336,16 +412,16 @@ if not st.session_state.clicked:
             """
             disp = f"""
             <div style="display: flex; justify-content: space-between;">
-            <span style="text-align: left;">{Analysis.initial_investment}</span>
-            <span style="text-align: center; flex-grow: 1; text-align: center;"> {Analysis.HIT()}</span>
-            <span style="text-align: right; color: red;">{Analysis.drawdown_pct}%</span>
+            <span style="text-align: left;">{q[28]}</span>
+            <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[18]}</span>
+            <span style="text-align: right; color: red;">{q[8]}%</span>
             </div>
             """
             tile.write("\n")
             tile.markdown(head_, unsafe_allow_html=True)
             tile.write(disp, unsafe_allow_html=True)
             tile.write("\n")
-            tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[Analysis, stratergy])
+            tile.button("Execute", key=stn, use_container_width=True, on_click=click_button_arg, args=[q, stn])
         
 if st.session_state.clicked:
     with st.sidebar:
