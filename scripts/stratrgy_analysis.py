@@ -18,7 +18,7 @@ class StatergyAnalysis:
         self.weekday_returns = None
         self.yearly_returns = None
         _,_,_,_,_ =  self.analysis()
-        self.daily_ana()
+        #self.daily_ana()
         self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
         #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
         self.equity_curve_value = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
@@ -26,6 +26,8 @@ class StatergyAnalysis:
         self.equity_PctChange = None
         self.annual_std = 0
         self.annual_mean = 0
+        self.daily_annual_mean = 0
+        self.daily_annual_std = 0
         self.drawdown_max, self.drawdown_pct = self.drawdown(0)
         self.daily_equity_Curve()
         self.num_wins = self.num_profit(self.csv_data)
@@ -81,21 +83,23 @@ class StatergyAnalysis:
         return data
         
     def daily_equity_Curve(self):
-
+        daily_equity_curve = self.csv_data.groupby('Day')['equity_curve'].last()
+        self.equity_PctChange = daily_equity_curve.pct_change().dropna()
         #self.equity = self.daily_returnts['cum_pnl'] + self.initial_investment
-        self.equity = self.csv_data['equity_curve']
-        self.equity_PctChange = self.equity.pct_change().dropna()
-        self.annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
+        #self.equity = self.csv_data['equity_curve']
+        #self.equity_PctChange = self.equity.pct_change().dropna()
+        self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
         daily_mean = self.equity_PctChange.mean() 
         daily_std =  self.equity_PctChange.std()
-        self.annual_std = self.equity_PctChange.std() * np.sqrt(252) 
+        self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
 
 
     def yearlyVola(self):
         equity = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
         equity_PctChange = equity.pct_change().dropna()
-        annual_std = equity_PctChange.std() * np.sqrt(252) 
-        return round(annual_std * 100, 2)
+        self.annual_std = equity_PctChange.std() * np.sqrt(252) 
+        self.annual_mean = equity_PctChange.mean() * np.sqrt(252) 
+        return round(self.annual_std * 100, 2)
 
     def analysis(self):
         daily_returns = self.csv_data.groupby('Day').sum(numeric_only = True)
@@ -114,17 +118,17 @@ class StatergyAnalysis:
         #weekday_returns['pnl_absolute'] = weekday_returns['pnl_absolute'].abs()
         weekday_returns = weekday_returns[weekday_returns['pnl_absolute'] != 0]
         weekday_returns[['pnl_absolute']]
-        self.weekday_returns = weekday_returns
+        self.weekday_returns = weekday_returns[['pnl_absolute']]
 
         weekly_returns = self.csv_data.groupby('Week').sum(numeric_only = True)
         weekly_returns['cum_pnl'] = weekly_returns['pnl_absolute'].cumsum()
         weekly_returns[['pnl_absolute','cum_pnl']]
-        self.weekly_returns = weekly_returns
+        self.weekly_returns = weekly_returns[['pnl_absolute','cum_pnl']]
 
         yearly_returns = self.csv_data.groupby('Year').sum(numeric_only = True)
         yearly_returns['cum_pnl'] = yearly_returns['pnl_absolute'].cumsum()
         yearly_returns[['pnl_absolute', 'cum_pnl']]
-        self.yearly_returns = yearly_returns
+        self.yearly_returns =yearly_returns[['pnl_absolute', 'cum_pnl']]
 
         return daily_analysis, monthly_analysis, weekday_returns, weekly_returns, yearly_returns 
     
@@ -152,17 +156,17 @@ class StatergyAnalysis:
         return [min_profitable_day, min_profit_day] 
     
     def Sharpe(self):
-        sharpe_ratio = (self.annual_mean - self.risk_free_rate) / self.annual_std
+        sharpe_ratio = (self.daily_annual_mean*np.sqrt(252) - self.risk_free_rate) / self.daily_annual_std
         return round(sharpe_ratio, 2)
     
     def Calmar(self):
-        calmar_ratio = self.annual_mean / self.drawdown_pct * -100 
-        return calmar_ratio
+        calmar_ratio = self.daily_annual_mean*np.sqrt(252) / self.drawdown_pct * -100 
+        return round(calmar_ratio, 2)
     
     def Sortino(self):
         downside_returns = np.where(self.equity_PctChange < 0, self.equity_PctChange, 0)
         downside_deviation = downside_returns.std() * np.sqrt(252)
-        sortino_ratio = (self.annual_mean - self.risk_free_rate) / downside_deviation
+        sortino_ratio = (self.daily_annual_mean*np.sqrt(252) - self.risk_free_rate) / downside_deviation
         return round(sortino_ratio, 2)
     
     def max_consecutive(self, daily_returns, quant):
@@ -201,7 +205,7 @@ class StatergyAnalysis:
         daily_returns['returns'] = daily_returns['cum_pnl']/self.initial_investment *100
         avg_returns = daily_returns['cum_pnl'].mean()
         avg_returns_pct = daily_returns['returns'].mean()
-        return round(avg_returns, 2), round(avg_returns_pct, 2)
+        return [round(avg_returns, 2), round(avg_returns_pct, 2)]
     
     def drawdown(self, i=0, initial_investment=None, max_eq=0 ):
     
@@ -216,7 +220,7 @@ class StatergyAnalysis:
             self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['cum_max'])*100
         else:
             self.csv_data['cum_max'] = self.csv_data['equity_curve'].cummax()
-            self.csv_data.loc[self.csv_data['cum_max'] >= max_eq, 'cum_max'] = max_eq  
+            self.csv_data.loc[self.csv_data['cum_max'] <= max_eq, 'cum_max'] = max_eq  
             #self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']        
             self.csv_data['drawdown'] = self.csv_data['equity_curve'] - self.csv_data['cum_max']
             self.csv_data['drawdown_pct'] = self.csv_data['drawdown_percentage']
@@ -235,7 +239,9 @@ class StatergyAnalysis:
         
         return fig1, fig2
 
-    def roi(self, monthly_returns):
+    def roi(self, monthly_returns=None):
+        if monthly_returns == None:
+            monthly_returns = self.monthly_returns
         ROI = monthly_returns[['cum_pnl']].iloc[-1]
         ROI_perct = round((ROI.values[0]/self.initial_investment)*100,2)
         return round(ROI.values[0], 2), round(ROI_perct, 2)
@@ -344,7 +350,7 @@ class StatergyAnalysis:
             daily_returns = self.csv_data
         wins = None
         if i == 1:
-            wins = daily_returns[daily_returns['pnl_absolute']>=0]
+            wins = daily_returns[daily_returns['pnl_absolute']>0]
         else:
             wins = daily_returns[daily_returns['pnl_absolute'] <0]
         prof = wins['pnl_absolute'].tolist()
@@ -390,4 +396,3 @@ class StatergyAnalysis:
 
         fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
         return fig
-#calmar ratio corret karna hai
