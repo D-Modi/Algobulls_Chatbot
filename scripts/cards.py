@@ -1,9 +1,6 @@
 
-import re
-import glob
 import streamlit as st
 import matplotlib.pyplot as plt  
-import seaborn as sns
 from stratrgy_analysis import StatergyAnalysis
 import pandas as pd
 import numpy as np
@@ -12,7 +9,9 @@ import sqlite3
 import pickle
 import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
-from sql import insert_sql, delete_id
+from datetime import datetime
+import os
+from sql import insert_sql, delete_id, calc
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False 
@@ -27,7 +26,9 @@ if 'Time' not in st.session_state:
 if 'rt' not in st.session_state:
     st.session_state['rt'] = None
 if 'i' not in st.session_state:
-    st.session_state['i'] = None
+    st.session_state['i'] = None   
+if 'index' not in st.session_state:
+    st.session_state['index'] = None 
     
 def click_button():
     st.session_state.clicked = not st.session_state.clicked
@@ -35,17 +36,23 @@ def click_button():
 def click_button_return():
     st.session_state.clicked = not st.session_state.clicked
     st.session_state.button = False
-    
+
 def click_button_disp(s, r, i):
     st.session_state.button = True
     st.session_state['Time'] = s
     st.session_state['rt'] = r
     st.session_state['i'] = i
-    
-def click_button_arg(a,b):
+
+def click_button_arg(a,b,c):
     st.session_state.clicked = not st.session_state.clicked
     st.session_state['ana'] = a
     st.session_state['stra'] = b
+    st.session_state['index'] = c
+
+def hash_func(q):
+    return q[1]
+
+###############################################################################################
 
 def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
@@ -70,7 +77,6 @@ def htmap(data, days):
     sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax) 
 
     st.write(hm)
-    return box_width
 
 def freq_hist(profit, num):
     num.insert(0, "")  
@@ -135,6 +141,7 @@ def display(weekday_returns, q):
     tab = q[5]['pnl_absolute']
     st.table(tab)
 
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def daily_returns_hist(daily_returns):
         fig1, ax1 = plt.subplots(figsize=(10, 2))  
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
@@ -146,16 +153,187 @@ def daily_returns_hist(daily_returns):
         ax2.set_xticklabels([])
         
         return fig1, fig2
+
+
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+def is_valid_datetime(input_str):
+    try:
+        datetime.strptime(input_str, "%Y-%m-%d")
+        return True
+    except ValueError:
+        try:
+            datetime.strptime(input_str, "%d-%m-%Y")
+            return True
+        except ValueError:
+            return False
+        
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+def entry_find_nearest_date(data, target_date, entry_data_col_index):
+    target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
+    date_col = list(data[entry_data_col_index])
+    for i in range(len(date_col)):
+        if date_col[i] >= target_date_str:
+            return i
+
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+def exit_find_nearest_date(data, target_date, entry_data_col_index):
+    target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
+    date_col = list(data[entry_data_col_index])[::-1]
+    for i in range(len(date_col)):
+        if date_col[i] <= target_date_str:
+            return len(date_col)-i-1;
+
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+def get_data_using_path(csv_path):
+    data = pd.read_csv(csv_path)
+    return data;
+
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+def get_analysis_obj(data, stn):
+    row = calc(data, i=1, filename=stn)
+    return row;        
+
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+def get_analysis_with_initial_invest(data, initial_investment, stn):
+    Analysis = calc(data, i=1, initial_inestent=initial_investment, filename=stn)
+    return Analysis;    
+
+# @st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
+def next_page(q, stratergy, i):
     
-def next_page( q, code):
-    
+    data = q[1]
+    print(data.columns)
+    row = list(data.iloc[0])
+    entry_data_col_index = "entry_timestamp";
+    for j in range(len(row)):
+        tempstr = str(row[j]).split(" ")
+        if is_valid_datetime(tempstr[0]):
+            entry_data_col_index = data.columns[j]
+            break;
+    data = data.sort_values(by=entry_data_col_index)
+    try:
+        date_format = "%Y-%m-%d"
+        startdate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[0].split(" ")[0], date_format)
+        enddate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[-1].split(" ")[0], date_format)
+    except:
+        date_format = "%d-%m-%Y"
+        startdate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[0].split(" ")[0], date_format)
+        enddate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[-1].split(" ")[0], date_format)
+        
+    custom_aligned_text = f"""
+        <div style="display: flex; justify-content: space-between; color: green; font-size: 24px;">
+        <span style="text-align: left;">   </span>
+        <span style="text-align: center; margin-top: -30px;"><strong>{stratergy}</strong></span>
+        <span style="text-align: right; color: green"> </span>
+        </div>
+        """
+    mark = f"""
+        <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+        <span style="text-align: left;">   </span>
+        <span style="text-align: right;"></span>
+        </div>
+        """
+    st.write(custom_aligned_text, unsafe_allow_html=True)
+    st.markdown(mark, unsafe_allow_html=True)
+
+    col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1.7, 3])
+    with col1:
+        st.write("")
+    with col2:
+        
+        st.markdown(
+            """
+            <style>
+            .stDateInput > label {
+                display: flex;
+                justify-content: center;
+                font-size: 18px;
+                margin-top: -30px;
+                
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        selected_date_entry = st.date_input(
+        "Entry Date",
+        startdate,
+        key=f"entrydate{i}",
+        min_value=startdate,
+        max_value=enddate,
+
+    )
+    with col3:
+        st.markdown(
+            """
+            <style>
+            .stDateInput > label {
+                display: flex;
+                justify-content: center;
+                font-size: 18px;
+                margin-top: -30px;
+                
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+        selected_date_exit = st.date_input(
+        "Exit Date",
+        enddate,
+        key=f"exitdate{i}",
+        min_value=startdate,
+        max_value=enddate,
+
+    )
+    with col4:
+        # Create the number input box
+        # Inject custom CSS to center the label
+        st.markdown(
+            """
+            <style>
+            .stNumberInput > label {
+                display: flex;
+                justify-content: center;
+                font-size: 18px;
+                margin-top: -30px;
+                
+            }
+            </style>
+            """,
+            unsafe_allow_html=True
+        )
+
+        # Create the number input
+        initial_investment = st.number_input('Initial Investment', key=f"numbox{i}", min_value=0, step=10000, format='%d', value=150000)
+
+    with col5:
+        st.write("")
+
+    entry_date_index = entry_find_nearest_date(data, selected_date_entry, entry_data_col_index)
+    exit_date_index = exit_find_nearest_date(data, selected_date_exit, entry_data_col_index)
+    if entry_date_index > exit_date_index:
+        entry_date_index = 0
+        exit_date_index = len(data)-1
+    data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
+    print(data.columns)
+    q = get_analysis_obj(data, stratergy)
+    subcol1, subcol2, subcol3 = st.columns([1.8, 1, 1])
+    with subcol1:
+        st.write("")
+    with subcol2:
+        if st.button("Submit"):
+            q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
+    with subcol3:
+        st.write("")
+
     st.title("Analysis")
-    #daily_returns, q[3], weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
+    # Analysis = get_analysis(Analysis)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.caption("Stratergy Code")
-        st.subheader(code)
+        st.subheader(stratergy)
     with col2:
         st.caption("Transaction Fee (with Package)")
         st.subheader("0%")
@@ -166,7 +344,7 @@ def next_page( q, code):
         st.caption("Recomended Days")
         st.subheader(""":green[180]""")
     
-    tab1, tab2, tab3 = st.tabs(["Reords", "Analytics", "Returns"])
+    tab1, tab2, tab3 = st.tabs(["Records", "Analytics", "Returns"])
     
     with tab3:
         Dur = [252*2, 252, 101,11, 22, 4]
@@ -223,16 +401,12 @@ def next_page( q, code):
             st.line_chart(q[2], y=['cum_pnl'])
             
         with bt1:
-            #last_month_data = daily_returns.iloc[-6:]
             week = q[32]
-            #last_month_data = daily_returns.iloc[-21:]
             month = q[31]
-            #last_month_data = daily_returns.iloc[-59:]
             quat = q[35]
-            #last_month_data = daily_returns.iloc[-101:]
             half = q[34]
-            #last_month_data = daily_returns.iloc[-252:]
             yr = q[33]
+            
             
             c1, c2 = st.columns(2)
             with c1:
@@ -255,29 +429,59 @@ def next_page( q, code):
                 ax0.set_yticklabels(x, minor=False)
                 ax0.set_title('Profit/Loss Analysis')
                 st.pyplot(fig0)
-                max_win_streak = int.from_bytes(q[24], byteorder='little')   
-                max_loss_streak = int.from_bytes(q[25], byteorder='little')
                 
-                st.write(f"***Average loss per losing trade***: {avg_profit}")
-                st.write(f"***Average gain per winning trade***: {avg_loss}")
-                st.write(f"***Maximum Gains***: {values[0]}")
-                st.write(f"***Minimum Gains***: {values[1]}")
-                st.write (f"***Average Trades per Day***: {q[15]}")
-                st.write("\n")
-                st.write(f"***HIT Ratio***: {q[18]}")
-                st.write(f"***Profit Factor***: {q[20]}")
-                st.write(f"***Yearly Volatility***: {q[23]}")
-                st.write(f"***Max Win Streak***: {max_win_streak}")
-                st.write(f"***Max Loss streak***: {max_loss_streak}")
-                st.write(f"***Sharpe Ratio:*** {q[36]}")
-                st.write(f"***Calmar Ratio:*** {q[37]}")
-                st.write(f"***Sortino Ratio:*** {q[38]}")
-                st.write(f"Win Rate for ***last Week***: {week}")                
-                st.write(f"Win Rate for ***last Month***: {month}")                
-                st.write(f"Win Rate for ***last Quater:*** {quat}")                
-                st.write(f"Win Rate for ***last 6 Months***: {half}")                
-                st.write(f"Win Rate for ***last Year***: {yr}")
+                if isinstance(q[24], bytes):   
+                    q[24] = int.from_bytes(q[24], byteorder='little')      
+                if isinstance(q[25], bytes):   
+                    q[25] = int.from_bytes(q[25], byteorder='little')
                 
+                strings = [
+                    "Average loss per losing trade: ",
+                    "Average gain per winning trade: ",
+                    "Maximum Gains: ",
+                    "Minimum Gains: ",
+                    "Average Trades per Day: ",
+                    "HIT Ratio: ",
+                    "Profit Factor: ",
+                    "Yearly Volatility: ",
+                    "Max Win Streak: ",
+                    "Max Loss streak: ",
+                    "Sharpe Ratio: ",
+                    "Calmar Ratio: ",
+                    "Sortino Ratio: ",
+                    "Win Rate for last Week: ",
+                    "Win Rate for last Month: ",
+                    "Win Rate for last Quarter: ",
+                    "Win Rate for last 6 Months: ",
+                    "Win Rate for last Year: "
+                ]
+
+
+                variables = [
+                    avg_profit,
+                    avg_loss,
+                    values[0],
+                    values[1],
+                    q[15],
+                    q[18],
+                    q[20],
+                    q[23],
+                    q[24],
+                    q[25],
+                    q[36],
+                    q[37],
+                    q[38],
+                    week,
+                    month,
+                    quat,
+                    half,
+                    yr
+                ]
+
+                arr = np.array([strings, variables]).T
+                df = pd.DataFrame(arr, columns=["Duration", "Returns"])
+
+                st.table(df.assign(hack='').set_index('hack'))                
             with c2:        
                 labels = np.array(['Profitable Trades', 'Loss Making Trades', 'Short Trades', 'Long Trades'])
                 vals = np.array([[q[16], q[17]],[q[13], q[14]]])
@@ -291,11 +495,26 @@ def next_page( q, code):
                 axp.legend(wedge, labels, title="Trade Types", loc="upper left")
                 st.pyplot(figp)
                 
-                st.write(f"Number of ***short trades***: {vals[1][0]}")
-                st.write(f"Number of ***long trades***: {vals[1][1]}")
-                st.write(f"Number of ***wins***: {vals[0][1]}")
-                st.write(f"Number of ***losses***: {vals[0][0]}")
-                st.write(f"***Total*** Number of Trades{vals[1][1] + vals[1][0]}")   
+                some_numbers = [
+                    "Number of short trades: ",
+                    "Number of long trades: ",
+                    "Number of wins: ",
+                    "Number of losses: ",
+                    "Total Number of Trades: "
+                ]
+
+                num_data_x = [
+                    vals[1][0],
+                    vals[1][1],
+                    vals[0][0],
+                    vals[0][1],
+                    vals[1][0] + vals[1][1]
+                ]
+
+                arr = np.array([some_numbers, num_data_x]).T
+                df = pd.DataFrame(arr, columns=["Duration", "Returns"])
+
+                st.table(df.assign(hack='').set_index('hack'))    
                 
             categories = ['Last Week', 'Last Month', 'Last Quater', 'Last 6 Months', 'Last Year']
             win_rates = [week, month, quat, half, yr]
@@ -311,7 +530,6 @@ def next_page( q, code):
             #plt.tight_layout()  # Adjust layout to prevent overlapping labels
  
     with tab1:
-        
         htmap(q[2], 90)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
@@ -330,117 +548,178 @@ def next_page( q, code):
                 daisply(st.session_state['rt'], st.session_state["Time"], st.session_state['i'])
             else:
                 display(q[50], q)
-        
-            
-if not st.session_state.clicked:
-    st.set_page_config(layout="wide")
-    # path = "files/StrategyBacktestingPLBook-*.csv"
-    # print("\nUsing glob.iglob()")
-    # Files = []
 
-    # for file in glob.glob(path, recursive=True):
-    #     found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
-    #     Files.append(found)
+def save_uploaded_file(uploaded_file, save_directory, file_name):
+    # Create the save directory if it does not exist
+    if not os.path.exists(save_directory):
+        os.makedirs(save_directory)
+    
+    # Save the uploaded file to the specified directory
+    file_path = os.path.join(save_directory, file_name)
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getbuffer())
+    
+    return file_path
+        
+
+@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+def get_files(names):
+    Files = [row[0] for row in names]
+    return Files
+
+# @st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+# def main(Files):
+if not st.session_state.clicked:
+
+    st.set_page_config(layout="wide")
+
     conn = sqlite3.connect('strategy_analysis.db')
     cursor = conn.cursor()
     cursor.execute('SELECT Id FROM StrategyData ')
     names  = cursor.fetchall()
-    Files = [row[0] for row in names]
+    Files = get_files(names)
+    
+    num_file = len(Files)+1
+    num_row = num_file//3
+    if num_file%3 != 0:
+        num_row += 1
 
-    default = 150000
-    row1 = st.columns(3)
-    row2 = st.columns(3)
-    i = 0
-    for col in row1 + row2:
-        tile = col.container(height=400, border=True)
-        tile.write("By Algobulls")
-        if i < len(Files):
-            stn = Files[i]
-            #csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
-            #Analysis = StatergyAnalysis(csv_path)
-            #analysis = Analysis
-            i += 1
-            cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stn,))
-            q  = cursor.fetchone()
+    rows = None
+    for i in range(num_row):
+        row1 = st.columns(3)
+        if rows is None:
+            rows = row1
+        else:
+            rows += row1
 
-            pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
-            q = list(q)
-            for p in pick: 
-                q[p] = pickle.loads(q[p])
+    if rows is not None:
+        i = 0
+        for col in rows:
+            if i < len(Files):
+                tile = col.container(height=410, border=True)
+                with tile:
+                    col1, col2 = st.columns([0.8, 0.2]) 
+
+                    with col1:
+                        st.write("By Algobulls") 
+
+                    with col2:
+                        delete_button = st.button("Delete", key=f"delete{i}")
+                        if delete_button:
+                            delete_id(Files[i])
+                            st.rerun()
+                stratergy = Files[i]
+                # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
+                # data = get_data_using_path(csv_path)
+                # Analysis = get_analysis_obj(data)
+                i += 1
+                cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
+                q  = cursor.fetchone()
+
+                pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
+                q = list(q)
+                for p in pick: 
+                    q[p] = pickle.loads(q[p])
+
+                data = q[1]
+                custom_aligned_text = f"""
+                <div style="display: flex; justify-content: space-between;">
+                <span style="text-align: left;">{stratergy}</span>
+                <span style="text-align: right; color: green">{q[19][1]}</span>
+                </div>
+                """
+                mark = f"""
+                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                <span style="text-align: left;">   </span>
+                <span style="text-align: right;">ROI% | All Time</span>
+                </div>
+                """
+                tile.write(custom_aligned_text, unsafe_allow_html=True)
+                tile.markdown(mark, unsafe_allow_html=True)
+                pnl, cum_pnl = daily_returns_hist(q[3])
+                tile.pyplot(pnl)
+
+                ratios = f"""
+                <div style="display: flex; justify-content: space-between;">
+                <span style="text-align: left;">{q[36]}</span>
+                <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[37]}</span>
+                <span style="text-align: right;">{q[38]}</span>
+                </div>
+                """
+                cap = f"""
+                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                <span style="text-align: left;">Sharpe Ratio</span>
+                <span style="text-align: center; flex-grow: 1; text-align: center;"> Calmar Ratio</span>
+                <span style="text-align: right;">Sortino Ratio</span>
+                </div>
+                """
+                tile.write(ratios, unsafe_allow_html=True)
+                tile.markdown(cap, unsafe_allow_html=True)
+
+                head_ = f"""
+                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                <span style="text-align: left;">Initial Investment</span>
+                <span style="text-align: center; flex-grow: 1; text-align: center;"> HIT Ratio</span>
+                <span style="text-align: right;"> max. Drawdown</span>
+                </div>
+                """
+                disp = f"""
+                <div style="display: flex; justify-content: space-between;">
+                <span style="text-align: left;">{q[28]}</span>
+                <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[18]}</span>
+                <span style="text-align: right; color: red;">{q[8]}%</span>
+                </div>
+                """
+                tile.write("\n")
+                tile.markdown(head_, unsafe_allow_html=True)
+                tile.write(disp, unsafe_allow_html=True)
+                tile.write("\n")
+                tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[q, stratergy, i])
+            
+            else:
+                tile = col.container(height=410, border=True)
+                centered_red_bold_large_text = """
+                <div style='display: flex; justify-content: center;'>
+                    <span style='color:green; font-size:30px;'><strong>ADD YOUR STRATEGY</strong></span>
+                </div>
+                """
+                tile.markdown(centered_red_bold_large_text, unsafe_allow_html=True)
                 
-            #daily_returns, q[3], weekday_redddddcturns, weekly_returns, yearly_returns = Analysis.analysis()
+                with tile:
+                    st.markdown("""
+                        <style>
+                        ::placeholder {
+                            text-align: center;
+                        }
+                        </style>
+                    """, unsafe_allow_html=True)
 
-            custom_aligned_text = f"""
-            <div style="display: flex; justify-content: space-between;">
-            <span style="text-align: left;">{stn}</span>
-            <span style="text-align: right; color: green">{q[19][1]}</span>
-            </div>
-            """
-            mark = f"""
-            <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-            <span style="text-align: left;">   </span>
-            <span style="text-align: right;">ROI% | All Time</span>
-            </div>
-            """
-            tile.write(custom_aligned_text, unsafe_allow_html=True)
-            tile.markdown(mark, unsafe_allow_html=True)
-            pnl, cum_pnl = daily_returns_hist(q[3])
-            tile.pyplot(pnl)
+                    user_input = st.text_input("", placeholder="Enter Name of the Strategy")
+                
+                with tile:
+                    uploaded_file = st.file_uploader("", type="csv")
 
-            ratios = f"""
-            <div style="display: flex; justify-content: space-between;">
-            <span style="text-align: left;">{q[36]}</span>
-            <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[37]}</span>
-            <span style="text-align: right;">{q[38]}</span>
-            </div>
-            """
-            cap = f"""
-            <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-            <span style="text-align: left;">Sharpe Ratio</span>
-            <span style="text-align: center; flex-grow: 1; text-align: center;"> Calmar Ratio</span>
-            <span style="text-align: right;">Sortino Ratio</span>
-            </div>
-            """
-            tile.write(ratios, unsafe_allow_html=True)
-            tile.markdown(cap, unsafe_allow_html=True)
+                    if uploaded_file is not None and user_input != '':
+                        # save_directory = "files"
+                        file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
+                        data = pd.read_csv(uploaded_file)
+                        insert_sql(data, 1, file_name)
+                    
+                with tile:
+                    col1, col2 = st.columns([0.37, 0.63]) 
 
-            head_ = f"""
-            <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-            <span style="text-align: left;">Initial Investment</span>
-            <span style="text-align: center; flex-grow: 1; text-align: center;"> HIT Ratio</span>
-            <span style="text-align: right;"> max. Drawdown</span>
-            </div>
-            """
-            disp = f"""
-            <div style="display: flex; justify-content: space-between;">
-            <span style="text-align: left;">{q[28]}</span>
-            <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[18]}</span>
-            <span style="text-align: right; color: red;">{q[8]}%</span>
-            </div>
-            """
-            tile.write("\n")
-            tile.markdown(head_, unsafe_allow_html=True)
-            tile.write(disp, unsafe_allow_html=True)
-            tile.write("\n")
-            tile.button("Execute", key=stn, use_container_width=True, on_click=click_button_arg, args=[q, stn])
-        
+                    with col1:
+                        tile.write("") 
+
+                    with col2:
+                        if st.button("Submit"):
+                            if uploaded_file is not None and user_input is not None:
+                                st.rerun()
+
+                tile.write("\n")
+                break
+
 if st.session_state.clicked:
+    next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
     with st.sidebar:
         st.button("Return to cards", on_click=click_button_return)
-        # number = st.number_input("Enter initial investment", value=150000)
-        # st.write (f"Inital investment {number}") 
-        # Analysis.initial_investment = number 
-        # st.write()
-    next_page(st.session_state['ana'], st.session_state['stra'])
-
-
-
-
-
-
-
-
-
-
-
-
