@@ -9,15 +9,16 @@ import re
 import glob
 import copy
 
+
 def extract_text(filename):
     match = re.search(r'-(.*)\.csv$', filename)
     if match:
         return match.group(1)
-    return None
+    return filename
 
 def calc(csv_name, i=0, initial_inestent=150000, filename=None):
     if filename is not None:
-        stn = filename
+        stn = extract_text(filename)
     else:
         stn = extract_text(csv_name)
     Ana = StatergyAnalysis(csv_name, i=i, number=initial_inestent)
@@ -32,7 +33,6 @@ def calc(csv_name, i=0, initial_inestent=150000, filename=None):
         row.append(Ana.win_rate(last_month_data))
     
     row.extend([Ana.Sharpe(), Ana.Calmar(), Ana.Sortino()])
-
     T = [4,22,11,101,252,504]
     for a in T:
         row.append(Ana.Treturns(a)[1])
@@ -52,62 +52,23 @@ def calc(csv_name, i=0, initial_inestent=150000, filename=None):
         row.append(damn)
 
     return row
-    
-def insert_sql(csv_name, i=0, filename=None):
+
+def append_sql(csv_name, i=0, filename=None):
 
     conn = sqlite3.connect('strategy_analysis.db')
     cursor = conn.cursor()
-    if filename is not None:
-        stn = extract_text(filename)
-    else: 
-        stn = extract_text(csv_name)
-    Ana = StatergyAnalysis(csv_name, i)
-    row= [stn, Ana.csv_data, Ana.daily_returnts, Ana.monthly_returns, Ana.weekly_returns, Ana.weekday_returns, Ana.yearly_returns, Ana.drawdown_max, Ana.drawdown_pct,Ana.avgProfit(Ana.csv_data, -1),Ana.avgProfit(Ana.csv_data, 1), Ana.profit[0], Ana.loss[0], Ana.short, Ana.long, Ana.avgTrades(Ana.daily_returnts), Ana.num_wins, Ana.num_loss(Ana.csv_data, -1), Ana.hit, Ana.roi(), Ana.profit_factor, Ana.pos, Ana.neg, Ana.yearlyVola(),Ana.max_consecutive(Ana.csv_data, 1), Ana.max_consecutive(Ana.csv_data, -1), Ana.annual_std, Ana.annual_mean, Ana.initial_investment, Ana.risk_free_rate, Ana.equity_PctChange]
-
-    d = [-21, -6, -213, -101, -59]
-    for t in d:
-        if len(Ana.daily_returnts) > -1*t:
-            last_month_data = Ana.daily_returnts.iloc[t:]
-        else:
-            last_month_data = Ana.daily_returnts
-        row.append(Ana.win_rate(last_month_data))
     
-    row.extend([Ana.Sharpe(), Ana.Calmar(), Ana.Sortino()])
-    T = [4,22,11,101,252,504]
-    for a in T:
-        
-        row.append(Ana.Treturns(a)[1])
-        
-    row.extend([Ana.annual_mean, Ana.annual_std])
-
-    period = ['Day', 'Month', 'Week', 'WeekDay', 'Year']
-    for i in range(len(period)):
-        daily_returns = row[i+2]
-        damn = []
-        if i != 3:
-            damn.extend([period[i], Ana.avgReturns(daily_returns), Ana.round_calc(daily_returns['pnl_absolute']), len(daily_returns), Ana.num_loss(daily_returns, 1), Ana.num_loss(daily_returns, -1), Ana.max_profit(daily_returns, 1), Ana.max_profit(daily_returns, -1)])
-        if i == 0:
-            damn.extend([Ana.max_consecutive(daily_returns, 1), Ana.max_consecutive(daily_returns, -1)])
-        if i == 3:
-            damn = [Ana.max_profit(daily_returns, 1), Ana.max_profit(daily_returns, -1) ]
-        row.append(damn)
-       
-    row_pickled =  copy.deepcopy(row)   
-    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
-    for p in pick:
-            row_pickled[p] = pickle.dumps(row_pickled[p])
-
-    
-    cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stn,))
+    row = calc(csv_name, i=i, filename=filename)
+ 
+    cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (row[0],))
     q  = cursor.fetchone()
-
+    q = list(q)
+    
     if q is not None:
         pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
-        q = list(q)
-    
         for p in pick:
-            q[p] = pickle.loads(q[p])
-            
+            q[p] = pickle.loads(q[p]) 
+             
         if isinstance(q[24], bytes):   
             q[24] = int.from_bytes(q[24], byteorder='little')      
         if isinstance(q[25], bytes):   
@@ -126,7 +87,7 @@ def insert_sql(csv_name, i=0, filename=None):
     
         T = [4,22,11,101,252,504]
         for a in T:
-            row_combined.append(Ana.Treturns(a, merged.daily_returns_combined)[1])
+            row_combined.append(merged.Treturns(a, merged.daily_returns_combined)[1])
         row_combined.extend([merged.combined_mean, merged.combined_variance])
     
         period = ['Day', 'Month', 'Week', 'WeekDay', 'Year']
@@ -152,9 +113,22 @@ def insert_sql(csv_name, i=0, filename=None):
 
     #cursor.execute('''INSERT OR REPLACE INTO StrategyData VALUES (?, ?, ?,?,?,?,?,?, ?, ?,?,?,?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', row_combined)
         cursor.execute('''INSERT OR REPLACE INTO StrategyData VALUES (?, ?, ?,?,?,?,?,?, ?, ?,?,?,?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', row_combined)
-    else:
-        print("given id does not exist")   
-        cursor.execute('''INSERT OR REPLACE INTO StrategyData VALUES (?, ?, ?,?,?,?,?,?, ?, ?,?,?,?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', row_pickled)
+
+    
+def insert_sql(csv_name, i=0, filename=None):
+
+    conn = sqlite3.connect('strategy_analysis.db')
+    cursor = conn.cursor()
+    
+    row = calc(csv_name, i=i, filename=filename)   
+    row_pickled =  copy.deepcopy(row)  
+     
+    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
+    for p in pick:
+        row_pickled[p] = pickle.dumps(row_pickled[p])
+        
+    cursor.execute('''INSERT OR REPLACE INTO StrategyData VALUES (?, ?, ?,?,?,?,?,?, ?, ?,?,?,?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', row_pickled)
+    
     conn.commit()
     conn.close()
 
@@ -178,80 +152,80 @@ def delete_id(id_to_delete):
     
     conn.close()
 
+def run():
+    conn = sqlite3.connect('strategy_analysis.db')
+    cursor = conn.cursor()
 
-conn = sqlite3.connect('strategy_analysis.db')
-cursor = conn.cursor()
+    #cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
+    # # # Create a table
+    cursor.execute('''CREATE TABLE IF NOT EXISTS StrategyData (
+        Id TEXT PRIMARY KEY,
+        Csv BLOB,
+        Daily BLOB,
+        Monthly BLOB,
+        Weekly BLOB,
+        Weekday BLOB,
+        Yearly BLOB,
+        MaxDD REAL,
+        DDpct REAL,
+        Aloss BLOB,
+        Awin BLOB,
+        MaxG REAL,
+        MinG REAL,
+        short INTEGER,
+        long INTEGER,
+        Atr REAL,
+        NumWins INTEGER,
+        NumLoss INTEGER,
+        HIT REAL,
+        ROI BLOB,
+        PF REAL,
+        Tot_pos REAL,
+        Tot_neg REAL,
+        YVola REAL,
+        MaxWinS INTEGER,
+        MaxLossS INTEGER,
+        daily_annual_std REAL,
+        daily_annual_mean REAL,
+        Inv REAL,
+        RFR REAL,
+        EquityPct BLOB,
+        monthWR REAL,
+        weekWR REAL,
+        yearWR REAL,
+        months6WR REAL,
+        quarterWR REAL,
+        Sharpe REAL,
+        Calmar REAL,
+        Sortino REAL,
+        threeD REAL,
+        thirtyD REAL,
+        twoW REAL,
+        sixM REAL,
+        OneY REAL,
+        twoY REAL,
+        annual_std REAL,
+        annual_mean REAL,
+        disp_Daily BLOB,
+        disp_Monthly BLOB,
+        disp_Weekly BLOB,
+        disp_Weekday BLOB,
+        disp_Yearly BLOB
+    )''')
 
-#cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
-# # # Create a table
-cursor.execute('''CREATE TABLE IF NOT EXISTS StrategyData (
-    Id TEXT PRIMARY KEY,
-    Csv BLOB,
-    Daily BLOB,
-    Monthly BLOB,
-    Weekly BLOB,
-    Weekday BLOB,
-    Yearly BLOB,
-    MaxDD REAL,
-    DDpct REAL,
-    Aloss BLOB,
-    Awin BLOB,
-    MaxG REAL,
-    MinG REAL,
-    short INTEGER,
-    long INTEGER,
-    Atr REAL,
-    NumWins INTEGER,
-    NumLoss INTEGER,
-    HIT REAL,
-    ROI BLOB,
-    PF REAL,
-    Tot_pos REAL,
-    Tot_neg REAL,
-    YVola REAL,
-    MaxWinS INTEGER,
-    MaxLossS INTEGER,
-    daily_annual_std REAL,
-    daily_annual_mean REAL,
-    Inv REAL,
-    RFR REAL,
-    EquityPct BLOB,
-    monthWR REAL,
-    weekWR REAL,
-    yearWR REAL,
-    months6WR REAL,
-    quarterWR REAL,
-    Sharpe REAL,
-    Calmar REAL,
-    Sortino REAL,
-    threeD REAL,
-    thirtyD REAL,
-    twoW REAL,
-    sixM REAL,
-    OneY REAL,
-    twoY REAL,
-    annual_std REAL,
-    annual_mean REAL,
-    disp_Daily BLOB,
-    disp_Monthly BLOB,
-    disp_Weekly BLOB,
-    disp_Weekday BLOB,
-    disp_Yearly BLOB
-)''')
+    conn.commit()
+    conn.close()
 
-conn.commit()
-conn.close()
+    # # # # Example usage
+    head = ["Id","csv","Daily", "Monthly", "Weekly", "Weekday", "Yearly", 'MaxDD',"DDpct", "Aloss", "Awin", "MaxG", "MinG", "short", "long","Atr", "NumWins", "NumLoss", "HIT", "ROI", "PF", "Tot_pos","Tot_neg", "YVola", "MaxWinS", "MaxLossS","daily_annual_std", "daily_annual_mean","Inv","rfr", "EquityPct", "monthWR", "weekWR", "yearWR", "months6WR", "quarterWR", "Sharpe", "Calmar", "Sortino", "threeD", "thirtyD", 'twoW', "sixM","oneY", "twoY", "annual_mean", "annual_std", "disp_daily", "disp_monthly", "disp_weekly", "disp_weekday", "disp_yearly"]
+    # # daily = ["period", "avgRet", "avgRetPct", "freq", "numD", "numProfit", "numLoss", "MPDay", "MaxG", "LPDay", "MinG", "MaxWinS", "MaxLossS"]
 
-# # # # Example usage
-head = ["Id","csv","Daily", "Monthly", "Weekly", "Weekday", "Yearly", 'MaxDD',"DDpct", "Aloss", "Awin", "MaxG", "MinG", "short", "long","Atr", "NumWins", "NumLoss", "HIT", "ROI", "PF", "Tot_pos","Tot_neg", "YVola", "MaxWinS", "MaxLossS","daily_annual_std", "daily_annual_mean","Inv","rfr", "EquityPct", "monthWR", "weekWR", "yearWR", "months6WR", "quarterWR", "Sharpe", "Calmar", "Sortino", "threeD", "thirtyD", 'twoW', "sixM","oneY", "twoY", "annual_mean", "annual_std", "disp_daily", "disp_monthly", "disp_weekly", "disp_weekday", "disp_yearly"]
-# # daily = ["period", "avgRet", "avgRetPct", "freq", "numD", "numProfit", "numLoss", "MPDay", "MaxG", "LPDay", "MinG", "MaxWinS", "MaxLossS"]
+    path = "files/StrategyBacktestingPLBook-*.csv"
+    Files = []
 
-path = "files/StrategyBacktestingPLBook-*.csv"
-Files = []
-
-for file in glob.glob(path, recursive=True):
-    Files.append(file)
-#Files = ["files/StrategyBacktestingPLBook-STAB679.csv"]
-for i in Files:
-    insert_sql(i)
+    for file in glob.glob(path, recursive=True):
+        Files.append(file)
+    #Files = ["files/StrategyBacktestingPLBook-STAB679.csv"]
+    for i in Files:
+        insert_sql(i)
     

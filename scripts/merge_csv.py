@@ -340,4 +340,13 @@ class merge_csv:
         #self.data2_csv['drawdown'] = self.data2_csv['equity_pnl'] - self.data2_csv['cum_max']        
         self.data2_csv['drawdown'] = self.data2_csv['equity_curve'] - self.data2_csv['cum_max']
         self.data2_csv['drawdown_pct'] = self.data2_csv['drawdown_percentage']
+        
+    def Treturns(self,t, returns=None):
+        if returns is None:
+            returns = self.daily_returnts
+            
+        cum_pnl = returns['cum_pnl'].tolist()
+        cum_pnl = cum_pnl[-1*t:]
+        ret = cum_pnl[-1] - cum_pnl[0]
+        return ret, round(ret*100/self.initial_investment, 2)
             
