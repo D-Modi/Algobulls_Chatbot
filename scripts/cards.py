@@ -11,7 +11,11 @@ import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
 from datetime import datetime
 import os
-from sql import insert_sql, delete_id, calc
+from sql import insert_sql, delete_id, calc, append_sql
+import warnings
+
+warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
+
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False 
@@ -52,27 +56,40 @@ def click_button_arg(a,b,c):
 def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
-    
-def htmap(data, days):        
+
+def htmap(data, days):
     data = np.array(data['pnl_absolute'].tolist())
-    if days != -1:
-        data = data[-1 * days:]
-    m = 5 * int(len(data)/ 5)
+    data = data[-1 * days:]
+    m = 5 * int(len(data) / 5)
     data = data[:m]
     data = np.reshape(data, (5, -1))
     line_width = 0.8
     linecolor = "White"
-    box_width = int(m*2/25) + 2
+    box_width = int(m * 2 / 25) + 2
 
-    c = ["darkred","red","lightcoral","white", "palegreen","green","darkgreen"]
-    v = [0,.15,.4,.5,0.6,.9,1.]
-    l = list(zip(v,c))
-    cm=LinearSegmentedColormap.from_list('rg',l, N=256)
+    c = ["darkred", "red", "lightcoral", "white", "palegreen", "green", "darkgreen"]
+    v = [0, .15, .4, .5, 0.6, .9, 1.]
+    l = list(zip(v, c))
+    cm = LinearSegmentedColormap.from_list('rg', l, N=256)
 
-    hm, ax = plt.subplots(figsize=(box_width,2), dpi=400)
-    sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax) 
+    hm, ax = plt.subplots(figsize=(box_width, 2), dpi=400)
+    sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax)
+    plt.savefig("temp_plot.png", bbox_inches='tight', pad_inches=0)
 
-    st.write(hm)
+    # Load the saved image
+    with open("temp_plot.png", "rb") as img_file:
+        img_base64 = base64.b64encode(img_file.read()).decode()
+
+    
+    height = 200
+    container = st.container(height = 220, border=True)
+    # HTML to display image with horizontal scroll
+    html_code = f'''
+    <div style="height:{height}px; overflow-x: sroll;">
+            <img src="data:image/png;base64,{img_base64}"; height="100%"; width="auto">
+    </div>
+    '''
+    container.write(html_code, unsafe_allow_html=True)
 
 def freq_hist(profit, num):
     num.insert(0, "")  
@@ -96,44 +113,42 @@ def freq_hist(profit, num):
     return fig
 
 def daisply(daily_returns, period, csv):
+    strings = []
+    values = []
     if period == "Day":
         st.header("Daily Analysis")
     else:
+        strings.extend([f"{period}ly Average Returns", f"{period}ly Average Returns %" ])
+        values.extend([daily_returns[1][0], daily_returns[1][1]])
         st.header(f"{period}ly Analysis")
         st.write(f"***{period}ly Average Returns***: {daily_returns[1][0]}")
         st.write(f"***{period}ly Average Returns %***: {daily_returns[1][1]}%")
     
-    #days_hist, days_tab = Alanyze.compare_hist(daily_returns, [1000, 2000, 3000, 4000, 5000], period)
     freq_hist_py = freq_hist(daily_returns[2], [-5000,-4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000])
-
-
     st.subheader("Frequency of profits")
-    st.pyplot(freq_hist_py)
+    st.pyplot(freq_hist_py, use_container_width=True)
     
     with st.expander("More information"):
-        st.write(f"Number of ***trading {period}s***: {daily_returns[3]}")
-        st.write(f"Number of ***Profitable {period}s***: {daily_returns[4]} {period}")
-        st.write(f"Number of ***Loss Making {period}s***: {daily_returns[5]} {period} ")
-        st.write(f"***Most Profitable {period}***: {daily_returns[6][1]}")
-        st.write(f"Maximum ***Gains*** in a {period}: {daily_returns[6][0]}")
-        st.write(f"***Least Profitable {period}***: {daily_returns[7][1]}")
-        st.write(f"Maximum ***Loss*** in a {period}: {daily_returns[7][0]}")
-        if period == "Day":
-            st.write(f"***Max Win Streak***: {daily_returns[8]}")
-            st.write(f"***Max Loss streak***: {daily_returns[9]}")
+        strings.extend([f"Number of trading {period}s", f"Number of Profitable {period}s", f"Number of Loss Making {period}s", f"Most Profitable {period}", f"Maximum Gains in a {period}", f"Least Profitable {period}", f"Maximum Loss in a {period}"])
+        values.extend([daily_returns[3], daily_returns[4], daily_returns[5], daily_returns[6][1], daily_returns[6][0], daily_returns[7][1], daily_returns[7][0]])
 
-    st.subheader(f"Profit/Loss Data per {period}")
+        if period == "Day":
+            strings.extend(["Max Win Streak", "Max Loss Streak"])
+            values.extend([daily_returns[8], daily_returns[9]])
+            
+        arr = np.array([strings, values]).T
+        df = pd.DataFrame(arr, columns=["", " "])
+        st.table(df.assign(hack='').set_index('hack'))
+        
     if daily_returns[3]>=252:
         st.subheader(f"Profit/Loss Data per {period} for last year")
-        st.bar_chart(csv[-252:], y=['pnl_absolute'], width=500, height=800)
+        st.bar_chart(csv[-252:], y=['pnl_absolute'], width=500, height=400)
     else:
         st.subheader(f"Profit/Loss Data per {period}")
-        st.bar_chart(csv, y=['pnl_absolute'], width=500, height=800)
+        st.bar_chart(csv, y=['pnl_absolute'], width=500, height=400)
     if 'cum_pnl' in csv.columns:
         st.subheader("Cumulative Profit and loss")
         st.line_chart(csv, y=['cum_pnl'])
-    st.write(f"")
-    st.divider()
  
 def display(weekday_returns, q):
     st.subheader(f"Profit/Loss Data per Day of Week")
@@ -143,7 +158,7 @@ def display(weekday_returns, q):
     tab = q[5]['pnl_absolute']
     st.table(tab)
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def daily_returns_hist(daily_returns):
         fig1, ax1 = plt.subplots(figsize=(10, 2))  
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
@@ -157,7 +172,7 @@ def daily_returns_hist(daily_returns):
         return fig1, fig2
 
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def is_valid_datetime(input_str):
     try:
         datetime.strptime(input_str, "%Y-%m-%d")
@@ -169,7 +184,7 @@ def is_valid_datetime(input_str):
         except ValueError:
             return False
         
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])
@@ -177,7 +192,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] >= target_date_str:
             return i
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
 def exit_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])[::-1]
@@ -185,22 +200,22 @@ def exit_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] <= target_date_str:
             return len(date_col)-i-1;
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_data_using_path(csv_path):
     data = pd.read_csv(csv_path)
     return data;
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_analysis_obj(data, stn):
     row = calc(data, i=1, filename=stn)
     return row;        
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, i=1, initial_inestent=initial_investment, filename=stn)
     return Analysis;    
 
-# @st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
+# #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
 def next_page(q, stratergy, i):
     
     data = q[1]
@@ -317,15 +332,15 @@ def next_page(q, stratergy, i):
     if entry_date_index > exit_date_index:
         entry_date_index = 0
         exit_date_index = len(data)-1
-    if not (entry_date_index == 0 and exit_date_index == len(data) -1):
-        data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
-        q = get_analysis_obj(data, stratergy)
+
     subcol1, subcol2, subcol3 = st.columns([1.8, 1, 1])
     with subcol1:
         st.write("")
     with subcol2:
         if st.button("Submit"):
-            q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
+            if entry_date_index != 0 or exit_date_index != len(data) -1 or initial_investment != 150000:
+                data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
+                q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
     with subcol3:
         st.write("")
 
@@ -350,10 +365,8 @@ def next_page(q, stratergy, i):
     
     with tab3:
         Dur = [252*2, 252, 101,11, 22, 4]
-        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '15 Days', '30 Days', '3 Days']
-        returns = [f"{q[19][1]}%"]
-        for i in range(len(Dur)):
-            returns.append(f"{q[44-i]}%")
+        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '30 Days', '15 Days', '3 Days']
+        returns = [f"{q[19][1]}%", f"{q[44]}%", f"{q[43]}%", f"{q[42]}%", f"{q[40]}%", f"{q[41]}%", f"{q[39]}%"]
         arr = np.array([Duration, returns]).T
         df = pd.DataFrame(arr, columns=["Duration", "Returns"])
         
@@ -532,7 +545,8 @@ def next_page(q, stratergy, i):
             #plt.tight_layout()  # Adjust layout to prevent overlapping labels
  
     with tab1:
-        htmap(q[2], 90)        
+        st.subheader("All Time Heatmap")
+        htmap(q[2], -1)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
@@ -544,7 +558,7 @@ def next_page(q, stratergy, i):
         with co5:
             a = st.button("Yearly", use_container_width=True, on_click=click_button_disp, args=["Year", q[51], q[6]])
         with co6:
-            a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay", q[50], q[5]])          
+            a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay",q[50],q[5]])          
         if st.session_state.button:
             if st.session_state["Time"] != "WeekDay":
                 daisply(st.session_state['rt'], st.session_state["Time"], st.session_state['i'])
@@ -564,15 +578,13 @@ def save_uploaded_file(uploaded_file, save_directory, file_name):
     return file_path
         
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_files(names):
     Files = [row[0] for row in names]
     return Files
 
-# @st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
-# def main(Files):
-if not st.session_state.clicked:
 
+if not st.session_state.clicked:
     st.set_page_config(layout="wide")
 
     conn = sqlite3.connect('strategy_analysis.db')
@@ -598,19 +610,30 @@ if not st.session_state.clicked:
         i = 0
         for col in rows:
             if i < len(Files):
+                stratergy = Files[i]
                 tile = col.container(height=410, border=True)
                 with tile:
-                    col1, col2 = st.columns([0.8, 0.2]) 
+                    col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
 
                     with col1:
                         st.write("By Algobulls") 
 
-                    with col2:
+                    with col3:
+                        with st.popover("Append Data"):
+                            uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")
+                            if uploaded_file is not None:
+                                csv_data = pd.read_csv(uploaded_file)
+                                append_sql(csv_data, i=1, filename=stratergy)
+                            if st.button("Submit", key=f"append_{stratergy}"):
+                                    if uploaded_file is not None:
+                                        st.rerun()    
+
+                    with col4:
                         delete_button = st.button("Delete", key=f"delete{i}")
                         if delete_button:
                             delete_id(Files[i])
                             st.rerun()
-                stratergy = Files[i]
+                
                 # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
                 # data = get_data_using_path(csv_path)
                 # Analysis = get_analysis_obj(data)
@@ -727,3 +750,35 @@ if st.session_state.clicked:
     next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
     with st.sidebar:
         st.button("Return to cards", on_click=click_button_return)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -59,11 +59,14 @@ def append_sql(csv_name, i=0, filename=None):
     cursor = conn.cursor()
     
     row = calc(csv_name, i=i, filename=filename)
- 
+    print("APEEND")
+    print(filename)
+    print("######################################3")
+    print(row[0])
     cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (row[0],))
     q  = cursor.fetchone()
     q = list(q)
-    
+    print(len(q))
     if q is not None:
         pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
         for p in pick:
@@ -110,10 +113,11 @@ def append_sql(csv_name, i=0, filename=None):
                         
         for p in pick:
             row_combined[p] = pickle.dumps(row_combined[p])
-
+        print(len(row_combined))
     #cursor.execute('''INSERT OR REPLACE INTO StrategyData VALUES (?, ?, ?,?,?,?,?,?, ?, ?,?,?,?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', row_combined)
         cursor.execute('''INSERT OR REPLACE INTO StrategyData VALUES (?, ?, ?,?,?,?,?,?, ?, ?,?,?,?,?,?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''', row_combined)
-
+    conn.commit()
+    conn.close()
     
 def insert_sql(csv_name, i=0, filename=None):
 
