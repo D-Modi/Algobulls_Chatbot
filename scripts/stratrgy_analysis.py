@@ -8,26 +8,39 @@ from statistics import mean
 
 class StatergyAnalysis:
     
-    def __init__(self, csv_data, i=0, number=40000):
+    def __init__(self, csv_data, i=0, number=150000):
+        self.i = i
         self.csv_data = self.new_csv(csv_data , i)
         self.initial_investment = number
         self.daily_returnts = None
         self.monthly_returns = None
-        self.daily_ana()
+        self.weekly_returns = None
+        self.weekday_returns = None
+        self.yearly_returns = None
+        _,_,_,_,_ =  self.analysis()
+        #self.daily_ana()
         self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
         #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
         self.equity_curve_value = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
         self.risk_free_rate = 0.07
-        
         self.equity_PctChange = None
         self.annual_std = 0
         self.annual_mean = 0
-        self.drawdown_max, self.drawdown_pct = self.drawdown()
+        self.daily_annual_mean = 0
+        self.daily_annual_std = 0
+        self.drawdown_max, self.drawdown_pct = self.drawdown(0)
         self.daily_equity_Curve()
         self.num_wins = self.num_profit(self.csv_data)
         self.numTrades = len(self.csv_data)
-
-    
+        self.minProfits = []
+        self.MaxProfits =[] 
+        self.hit = round((self.num_wins/self.numTrades*100), 2)
+        self.long = self.num_tradeType("long")
+        self.short = self.num_tradeType("short")
+        self.profit_factor, self.neg, self.pos = self.ProfitFactor()
+        self.profit = self.max_profit(self.csv_data)
+        self.loss = self.max_profit(self.csv_data, i=4)
+        
     def new_csv(Self, filepath, i):
         if i == 0:
             data = pd.read_csv(filepath)
@@ -70,20 +83,23 @@ class StatergyAnalysis:
         return data
         
     def daily_equity_Curve(self):
-
-        self.equity = self.daily_returnts['cum_pnl'] + self.initial_investment
-        self.equity_PctChange = self.equity.pct_change().dropna()
-        self.annual_mean = self.equity_PctChange.mean() * 252
+        daily_equity_curve = self.csv_data.groupby('Day')['equity_curve'].last()
+        self.equity_PctChange = daily_equity_curve.pct_change().dropna()
+        #self.equity = self.daily_returnts['cum_pnl'] + self.initial_investment
+        #self.equity = self.csv_data['equity_curve']
+        #self.equity_PctChange = self.equity.pct_change().dropna()
+        self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
         daily_mean = self.equity_PctChange.mean() 
         daily_std =  self.equity_PctChange.std()
-        self.annual_std = self.equity_PctChange.std() * np.sqrt(252) 
+        self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
 
 
     def yearlyVola(self):
         equity = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
         equity_PctChange = equity.pct_change().dropna()
-        annual_std = equity_PctChange.std() * np.sqrt(252) 
-        return round(annual_std * 100, 2)
+        self.annual_std = equity_PctChange.std() * np.sqrt(252) 
+        self.annual_mean = equity_PctChange.mean() * np.sqrt(252) 
+        return round(self.annual_std * 100, 2)
 
     def analysis(self):
         daily_returns = self.csv_data.groupby('Day').sum(numeric_only = True)
@@ -96,20 +112,23 @@ class StatergyAnalysis:
         Monthly_returns['cum_pnl'] = Monthly_returns['pnl_absolute'].cumsum()
         Monthly_returns['roi'] = round((Monthly_returns['cum_pnl']/self.initial_investment)*100,2)
         monthly_analysis = Monthly_returns[['pnl_absolute', 'cum_pnl', 'roi']]
+        self.monthly_returns = monthly_analysis
         
-
         weekday_returns = self.csv_data.groupby('weekday').sum(numeric_only = True)
         #weekday_returns['pnl_absolute'] = weekday_returns['pnl_absolute'].abs()
         weekday_returns = weekday_returns[weekday_returns['pnl_absolute'] != 0]
         weekday_returns[['pnl_absolute']]
+        self.weekday_returns = weekday_returns[['pnl_absolute']]
 
         weekly_returns = self.csv_data.groupby('Week').sum(numeric_only = True)
         weekly_returns['cum_pnl'] = weekly_returns['pnl_absolute'].cumsum()
         weekly_returns[['pnl_absolute','cum_pnl']]
+        self.weekly_returns = weekly_returns[['pnl_absolute','cum_pnl']]
 
         yearly_returns = self.csv_data.groupby('Year').sum(numeric_only = True)
         yearly_returns['cum_pnl'] = yearly_returns['pnl_absolute'].cumsum()
         yearly_returns[['pnl_absolute', 'cum_pnl']]
+        self.yearly_returns =yearly_returns[['pnl_absolute', 'cum_pnl']]
 
         return daily_analysis, monthly_analysis, weekday_returns, weekly_returns, yearly_returns 
     
@@ -119,29 +138,35 @@ class StatergyAnalysis:
         daily_analysis = daily_returns[['pnl_absolute', 'cum_pnl']]
         self.daily_returnts = daily_analysis      
 
-    def max_profit(self, returns):
-        max_profits = returns['pnl_absolute'].max()
-        max_profitable_day = returns['pnl_absolute'].idxmax()
+    def max_profit(self, returns, i=1):
+        if i ==1:
+            max_profits = returns['pnl_absolute'].max()
+            max_profitable_day = returns['pnl_absolute'].idxmax()
+        else:
+            max_profits = returns['pnl_absolute'].min()
+            max_profitable_day =  returns['pnl_absolute'].idxmin()
         maxi = [max_profits, max_profitable_day]
+        #self.MaxProfits = maxi
         return maxi
 
     def min_profit(self, returns):
         min_profitable_day = returns['pnl_absolute'].min()
         min_profit_day =  returns['pnl_absolute'].idxmin()
+        #self.minProfits = [min_profitable_day, min_profit_day] 
         return [min_profitable_day, min_profit_day] 
     
     def Sharpe(self):
-        sharpe_ratio = (self.annual_mean - self.risk_free_rate) / self.annual_std
+        sharpe_ratio = (self.daily_annual_mean*np.sqrt(252) - self.risk_free_rate) / self.daily_annual_std
         return round(sharpe_ratio, 2)
     
     def Calmar(self):
-        calmar_ratio = self.annual_mean / self.drawdown_pct * -100
+        calmar_ratio = self.daily_annual_mean*np.sqrt(252) / self.drawdown_pct * -100 
         return round(calmar_ratio, 2)
     
     def Sortino(self):
         downside_returns = np.where(self.equity_PctChange < 0, self.equity_PctChange, 0)
         downside_deviation = downside_returns.std() * np.sqrt(252)
-        sortino_ratio = (self.annual_mean - self.risk_free_rate) / downside_deviation
+        sortino_ratio = (self.daily_annual_mean*np.sqrt(252) - self.risk_free_rate) / downside_deviation
         return round(sortino_ratio, 2)
     
     def max_consecutive(self, daily_returns, quant):
@@ -158,7 +183,8 @@ class StatergyAnalysis:
     def win_rate(self, daily_returns):
         wins = daily_returns[daily_returns['pnl_absolute']>0]   
         return round(len(wins)/len(daily_returns)*100, 2)
-
+    
+#Another Useless function
     def winCount(self, daily_returns, i):
         wins = daily_returns[daily_returns['pnl_absolute']>=0]
         if i >0:
@@ -166,8 +192,11 @@ class StatergyAnalysis:
         else:
             return len(daily_returns) - len(wins)
         
-    def Treturns(self, t):
-        cum_pnl = self.daily_returnts['cum_pnl'].tolist()
+    def Treturns(self,t, returns=None):
+        if returns is None:
+            returns = self.daily_returnts
+            
+        cum_pnl = returns['cum_pnl'].tolist()
         cum_pnl = cum_pnl[-1*t:]
         ret = cum_pnl[-1] - cum_pnl[0]
         return ret, round(ret*100/self.initial_investment, 2)
@@ -176,15 +205,26 @@ class StatergyAnalysis:
         daily_returns['returns'] = daily_returns['cum_pnl']/self.initial_investment *100
         avg_returns = daily_returns['cum_pnl'].mean()
         avg_returns_pct = daily_returns['returns'].mean()
-        return round(avg_returns, 2), round(avg_returns_pct, 2)
+        return [round(avg_returns, 2), round(avg_returns_pct, 2)]
     
-    def drawdown(self):
-        self.csv_data['pnl_cumulative'] = self.csv_data['pnl_absolute'].cumsum()
-        self.csv_data['equity_pnl'] = self.csv_data['pnl_cumulative'] + self.initial_investment
-        self.csv_data['cum_max'] = self.csv_data['equity_pnl'].cummax()
-        self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']
-        self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['cum_max'])*100
+    def drawdown(self, i=0, initial_investment=None, max_eq=0 ):
     
+        if i != 0:
+            if initial_investment is None:
+                initial_investment = self.initial_investment
+            self.csv_data['pnl_cumulative'] = self.csv_data['pnl_absolute'].cumsum()
+            self.csv_data['equity_pnl'] = self.csv_data['pnl_cumulative'] + initial_investment
+            self.csv_data['cum_max'] = self.csv_data['equity_pnl'].cummax()
+            self.csv_data.loc[self.csv_data['cum_max'] >= max_eq, 'cum_max'] = max_eq
+            self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']        
+            self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['cum_max'])*100
+        else:
+            self.csv_data['cum_max'] = self.csv_data['equity_curve'].cummax()
+            self.csv_data.loc[self.csv_data['cum_max'] <= max_eq, 'cum_max'] = max_eq  
+            #self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']        
+            self.csv_data['drawdown'] = self.csv_data['equity_curve'] - self.csv_data['cum_max']
+            self.csv_data['drawdown_pct'] = self.csv_data['drawdown_percentage']
+            
         return round(self.csv_data['drawdown'].min(), 2), round(self.csv_data['drawdown_pct'].min(), 2)
     
     def daily_returns_hist(self, daily_returns):
@@ -199,7 +239,9 @@ class StatergyAnalysis:
         
         return fig1, fig2
 
-    def roi(self, monthly_returns):
+    def roi(self, monthly_returns=None):
+        if monthly_returns == None:
+            monthly_returns = self.monthly_returns
         ROI = monthly_returns[['cum_pnl']].iloc[-1]
         ROI_perct = round((ROI.values[0]/self.initial_investment)*100,2)
         return round(ROI.values[0], 2), round(ROI_perct, 2)
@@ -212,7 +254,8 @@ class StatergyAnalysis:
             return sum(returns['pnl_absolute'] < 0)
         else:
             return sum(returns['pnl_absolute'] >=0)
-
+        
+# try to remove this function
     def trading_num(self, returns):
         return len(returns)
 
@@ -244,16 +287,22 @@ class StatergyAnalysis:
   
         df.set_index('Value', inplace=True)
         return fig, df
+        
+    def round_calc(self, retrurn):
+        profit = np.zeros(12)
+        for r in retrurn:
+            val = int(r // 1000 + 6)
+            #print(val)
+            if val < 0:
+                val = 0
+            if val> 11:
+                val = 11
+            profit[val] +=1
+        return profit
+            
     
     def freq_hist(self, returns, num):
-
-        profit = []
-        profit.append(sum(returns['pnl_absolute'] < num[0]))
-        i = 1
-        while i < len(num):
-            profit.append(sum((returns['pnl_absolute'] > num[i-1]) & (returns['pnl_absolute'] < num[i])))
-            i += 1
-        profit.append(sum(returns['pnl_absolute'] > num[-1]))
+        profit = self.round_calc(returns['pnl_absolute'])
         num.insert(0, "")  
         num.append("")  
         
@@ -294,34 +343,57 @@ class StatergyAnalysis:
     def ProfitFactor(self):
         daily_positive = self.daily_returnts[self.daily_returnts['pnl_absolute'] > 0]['pnl_absolute'].sum()
         daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
-        return round(daily_positive/daily_neg * -1 , 2)
+        return round(daily_positive/daily_neg * -1 , 2), daily_neg, daily_positive
  
-    def avgProfit(self, daily_returns, i):
+    def avgProfit(self, daily_returns=None, i=1):
+        if daily_returns is None:
+            daily_returns = self.csv_data
         wins = None
         if i == 1:
-            wins = daily_returns[daily_returns['pnl_absolute']>=0]
+            wins = daily_returns[daily_returns['pnl_absolute']>0]
         else:
             wins = daily_returns[daily_returns['pnl_absolute'] <0]
         prof = wins['pnl_absolute'].tolist()
-        return round(mean(prof), 2)
+        return round(mean(prof), 2), len(wins)
         
-    def htmap(self):
-        
+    def htmap(self, days):        
         data = np.array(self.daily_returnts['pnl_absolute'].tolist())
+        data = data[-1 * days:]
         m = 5 * int(len(data)/ 5)
         data = data[:m]
         data = np.reshape(data, (5, -1))
         line_width = 0.8
         linecolor = "White"
-
+        box_width = int(m*2/25) + 2
+    
         c = ["darkred","red","lightcoral","white", "palegreen","green","darkgreen"]
         v = [0,.15,.4,.5,0.6,.9,1.]
         l = list(zip(v,c))
         cm=LinearSegmentedColormap.from_list('rg',l, N=256)
 
-        hm, ax = plt.subplots(figsize=(72,2), dpi=400)
-        # plotting the heatmap 
+        hm, ax = plt.subplots(figsize=(box_width,2), dpi=400)
         sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax) 
+
         st.write(hm)
+        return box_width
       
-       
+    def Monthly_Roi_plot(self):
+        
+        fig, ax1 = plt.subplots()
+
+    # Bar plot for monthly returns
+        ax1.bar(self.monthly_returns.index.values, self.monthly_returns['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
+        ax1.set_xlabel('Month')
+        ax1.set_ylabel('Monthly Returns', color='b')
+        ax1.tick_params(axis='y', labelcolor='b')
+        ax1.set_xticks(self.monthly_returns.index[::3])
+        ax1.set_xticklabels(self.monthly_returns.index[::3], rotation=90)
+    # Line plot for ROI%
+        ax2 = ax1.twinx()
+        ax2.plot(self.monthly_returns.index.values, self.monthly_returns['roi'].values, color='r', marker='o', label='ROI%')
+        ax2.set_ylabel('ROI%', color='r')
+        ax2.tick_params(axis='y', labelcolor='r')
+
+        fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
+        return fig
+#calmar ratio corret karna hai
