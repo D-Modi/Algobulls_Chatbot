@@ -4,7 +4,7 @@ from stratrgy_analysis import StatergyAnalysis  # Assuming you have a file named
 import pickle
 import pandas as pd
 import numpy as np
-from trial import merge_csv
+from merge_csv import merge_csv
 import re
 import glob
 import copy
@@ -182,7 +182,7 @@ def delete_id(id_to_delete):
 conn = sqlite3.connect('strategy_analysis.db')
 cursor = conn.cursor()
 
-#cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
+cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
 # # # Create a table
 cursor.execute('''CREATE TABLE IF NOT EXISTS StrategyData (
     Id TEXT PRIMARY KEY,
