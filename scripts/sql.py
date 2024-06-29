@@ -182,7 +182,7 @@ def delete_id(id_to_delete):
 conn = sqlite3.connect('strategy_analysis.db')
 cursor = conn.cursor()
 
-cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
+#cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
 # # # Create a table
 cursor.execute('''CREATE TABLE IF NOT EXISTS StrategyData (
     Id TEXT PRIMARY KEY,

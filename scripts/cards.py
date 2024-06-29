@@ -55,7 +55,8 @@ def get_image_base64(image_path):
     
 def htmap(data, days):        
     data = np.array(data['pnl_absolute'].tolist())
-    data = data[-1 * days:]
+    if days != -1:
+        data = data[-1 * days:]
     m = 5 * int(len(data)/ 5)
     data = data[:m]
     data = np.reshape(data, (5, -1))
@@ -84,7 +85,8 @@ def freq_hist(profit, num):
     fig, ax = plt.subplots()
     ax.bar(r - 0.5, profit, color='b', width=width, align='center', label='Profit')
     for index, value in enumerate(profit):
-        ax.text(index + 0.5, value + 1, str(value), ha='center')
+        if value != 0:
+            ax.text(index + 0.5, value, str(value), ha='center')
     ax.set_xlabel("Value")
     ax.set_ylabel("Frequency")
     ax.set_xticks(np.arange(len(num)))
@@ -121,7 +123,12 @@ def daisply(daily_returns, period, csv):
             st.write(f"***Max Loss streak***: {daily_returns[9]}")
 
     st.subheader(f"Profit/Loss Data per {period}")
-    st.bar_chart(csv, y=['pnl_absolute'], width=500, height=800)
+    if daily_returns[3]>=252:
+        st.subheader(f"Profit/Loss Data per {period} for last year")
+        st.bar_chart(csv[-252:], y=['pnl_absolute'], width=500, height=800)
+    else:
+        st.subheader(f"Profit/Loss Data per {period}")
+        st.bar_chart(csv, y=['pnl_absolute'], width=500, height=800)
     if 'cum_pnl' in csv.columns:
         st.subheader("Cumulative Profit and loss")
         st.line_chart(csv, y=['cum_pnl'])
@@ -313,14 +320,14 @@ def next_page(q, stratergy, i):
     if not (entry_date_index == 0 and exit_date_index == len(data) -1):
         data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
         q = get_analysis_obj(data, stratergy)
-        subcol1, subcol2, subcol3 = st.columns([1.8, 1, 1])
-        with subcol1:
-            st.write("")
-        with subcol2:
-            if st.button("Submit"):
-                q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
-        with subcol3:
-            st.write("")
+    subcol1, subcol2, subcol3 = st.columns([1.8, 1, 1])
+    with subcol1:
+        st.write("")
+    with subcol2:
+        if st.button("Submit"):
+            q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
+    with subcol3:
+        st.write("")
 
     st.title("Analysis")
     # Analysis = get_analysis(Analysis)
@@ -530,14 +537,14 @@ def next_page(q, stratergy, i):
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
             a = st.button("Daily", use_container_width=True, on_click=click_button_disp, args=["Day", q[47], q[2]])
-        with co3:
-            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Month", q[48], q[3]])
         with co4:
+            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Month", q[48], q[3]])
+        with co3:
             a = st.button("Weekly", use_container_width=True, on_click=click_button_disp, args=["Week", q[49], q[4]])
         with co5:
             a = st.button("Yearly", use_container_width=True, on_click=click_button_disp, args=["Year", q[51], q[6]])
         with co6:
-            a = st.button("Day", use_container_width=True, on_click=click_button_disp, args=["WeekDay"])          
+            a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay", q[50], q[5]])          
         if st.session_state.button:
             if st.session_state["Time"] != "WeekDay":
                 daisply(st.session_state['rt'], st.session_state["Time"], st.session_state['i'])
