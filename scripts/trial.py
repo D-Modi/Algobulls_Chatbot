@@ -295,7 +295,8 @@ class merge_csv:
             data = df2[df2['pnl_absolute'] < 0]
             if len(data) > 0:
                 first_negative_index = df2[df2['pnl_absolute'] < 0].index[0]
-                first_negative_row = df2.index.get_loc(first_negative_index)
+                idx = df2.index
+                first_negative_row = np.where(idx == first_negative_index)[0][0]   
             else:
                 first_negative_row = len(df2)
 
@@ -303,21 +304,25 @@ class merge_csv:
             data = df1[df1['pnl_absolute'] < 0] 
             if len(data) > 0:
                 last_negative_index = df1[df1['pnl_absolute'] < 0].index[-1]
-                last_negative_row = df1.index.get_loc(last_negative_index)
+                idx = df1.index
+                last_negative_row = np.where(idx == last_negative_index)[0][-1]
             else:
                 last_negative_row = -1
         else:
             first_negative_index = df2[df2['pnl_absolute'] > 0].index[0]
-            first_negative_row = df2.index.get_loc(first_negative_index)
-
-            # Identify the index of the last negative value in 'pnl'
+            idx = df2.index
+            first_negative_row = np.where(idx == first_negative_index)[0][0]
+            
             last_negative_index = df1[df1['pnl_absolute'] > 0].index[-1]
-            last_negative_row = df1.index.get_loc(last_negative_index)
+            idx = df1.index
+            last_negative_row = np.where(idx == last_negative_index)[0][-1]
             
         positive_rows_from_start = first_negative_row 
         positive_rows_from_end = len(df1) - (last_negative_row + 1)
         total_positive_rows = positive_rows_from_end + positive_rows_from_start
-        return  (r1, r2, total_positive_rows)
+
+    
+        return  max(r1, r2, total_positive_rows)
     
     def winR(self, df1, df2, r1, r2, d):
         if len(df2)>d*-1:
@@ -336,20 +341,3 @@ class merge_csv:
         self.data2_csv['drawdown'] = self.data2_csv['equity_curve'] - self.data2_csv['cum_max']
         self.data2_csv['drawdown_pct'] = self.data2_csv['drawdown_percentage']
             
-        # return round(self.data2_csv['drawdown'].min(), 2), round(self.data2_csv['drawdown_pct'].min(), 2)
-        # _,_ = self.data2.drawdown(i=1, max_eq=self.data1_csv['cum_max'].iloc[-1])
-        
-        
-        
-        
-        
-        
-        
-
-        
-        
-        
-        
-        
-        
-        
