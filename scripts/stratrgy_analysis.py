@@ -64,22 +64,22 @@ class StatergyAnalysis:
         data['entry_transaction_type'] = data['entry_transaction_type'].replace({'BUY': 0, 'SELL': 1})
 
         data = data.dropna(subset=['pnl_absolute'])
-        
-        data['date'] = pd.to_datetime(data['entry_timestamp'])
-        data = data.sort_values(by='date')
-        data = data.drop(columns=['entry_timestamp'])
+        if 'Day' not in data.columns:
+            data['date'] = pd.to_datetime(data['entry_timestamp'])
+            data = data.sort_values(by='date')
+            data = data.drop(columns=['entry_timestamp'])
 
-        data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
-        data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
-        data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
-        data['Year'] = pd.to_datetime(data.date,format = '%Y-%m')
-        data['weekday'] = pd.to_datetime(data.date,format = '%a')\
-        
-        data['Day'] = data['Day'].dt.strftime('%Y-%m-%d')
-        data['Week'] = data['Week'].dt.strftime('%Y-%U')
-        data['Month'] = data['Month'].dt.strftime('%Y-%m')
-        data['Year'] = data['Year'].dt.strftime('%Y')
-        data['weekday'] = data['weekday'].dt.strftime('%a')
+            data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
+            data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
+            data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
+            data['Year'] = pd.to_datetime(data.date,format = '%Y-%m')
+            data['weekday'] = pd.to_datetime(data.date,format = '%a')\
+            
+            data['Day'] = data['Day'].dt.strftime('%Y-%m-%d')
+            data['Week'] = data['Week'].dt.strftime('%Y-%U')
+            data['Month'] = data['Month'].dt.strftime('%Y-%m')
+            data['Year'] = data['Year'].dt.strftime('%Y')
+            data['weekday'] = data['weekday'].dt.strftime('%a')
         return data
         
     def daily_equity_Curve(self):
@@ -396,3 +396,4 @@ class StatergyAnalysis:
 
         fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
         return fig
+#calmar ratio corret karna hai
