@@ -620,12 +620,11 @@ if not st.session_state.clicked:
 
                     with col3:
                         with st.popover("Append Data"):
-                            uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")
-                            if uploaded_file is not None:
-                                csv_data = pd.read_csv(uploaded_file)
-                                append_sql(csv_data, i=1, filename=stratergy)
+                            uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")        
                             if st.button("Submit", key=f"append_{stratergy}"):
                                     if uploaded_file is not None:
+                                        csv_data = pd.read_csv(uploaded_file)
+                                        append_sql(csv_data, i=1, filename=stratergy)
                                         st.rerun()    
 
                     with col4:
@@ -723,22 +722,13 @@ if not st.session_state.clicked:
                 
                 with tile:
                     uploaded_file = st.file_uploader("", type="csv")
-
-                    if uploaded_file is not None and user_input != '':
-                        # save_directory = "files"
-                        file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
-                        data = pd.read_csv(uploaded_file)
-                        insert_sql(data, 1, file_name)
-                    
-                with tile:
                     col1, col2 = st.columns([0.37, 0.63]) 
-
-                    with col1:
-                        tile.write("") 
-
                     with col2:
                         if st.button("Submit"):
                             if uploaded_file is not None and user_input is not None:
+                                file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
+                                data = pd.read_csv(uploaded_file)
+                                insert_sql(data, 1, user_input)
                                 st.rerun()
 
 
@@ -750,34 +740,6 @@ if st.session_state.clicked:
     next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
     with st.sidebar:
         st.button("Return to cards", on_click=click_button_return)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
