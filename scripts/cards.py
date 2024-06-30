@@ -15,6 +15,7 @@ from sql import insert_sql, delete_id, calc, append_sql
 import warnings
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
+st.set_page_config(layout="wide")
 
 
 if 'clicked' not in st.session_state:
@@ -576,170 +577,182 @@ def save_uploaded_file(uploaded_file, save_directory, file_name):
         f.write(uploaded_file.getbuffer())
     
     return file_path
-        
 
 #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_files(names):
     Files = [row[0] for row in names]
     return Files
+        
+def about():
+    st.title("About")
+    st.write("Welcome to the About page!")
 
+def home():
+    if not st.session_state.clicked:
 
-if not st.session_state.clicked:
-    st.set_page_config(layout="wide")
+        conn = sqlite3.connect('strategy_analysis.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT Id FROM StrategyData ')
+        names  = cursor.fetchall()
+        Files = get_files(names)
+        
+        num_file = len(Files)+1
+        num_row = num_file//3
+        if num_file%3 != 0:
+            num_row += 1
 
-    conn = sqlite3.connect('strategy_analysis.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT Id FROM StrategyData ')
-    names  = cursor.fetchall()
-    Files = get_files(names)
-    
-    num_file = len(Files)+1
-    num_row = num_file//3
-    if num_file%3 != 0:
-        num_row += 1
-
-    rows = None
-    for i in range(num_row):
-        row1 = st.columns(3)
-        if rows is None:
-            rows = row1
-        else:
-            rows += row1
-
-    if rows is not None:
-        i = 0
-        for col in rows:
-            if i < len(Files):
-                stratergy = Files[i]
-                tile = col.container(height=410, border=True)
-                with tile:
-                    col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
-
-                    with col1:
-                        st.write("By Algobulls") 
-
-                    with col3:
-                        with st.popover("Append Data"):
-                            uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")        
-                            if st.button("Submit", key=f"append_{stratergy}"):
-                                    if uploaded_file is not None:
-                                        csv_data = pd.read_csv(uploaded_file)
-                                        append_sql(csv_data, i=1, filename=stratergy)
-                                        st.rerun()    
-
-                    with col4:
-                        delete_button = st.button("Delete", key=f"delete{i}")
-                        if delete_button:
-                            delete_id(Files[i])
-                            st.rerun()
-                
-                # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
-                # data = get_data_using_path(csv_path)
-                # Analysis = get_analysis_obj(data)
-                i += 1
-                cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
-                q  = cursor.fetchone()
-
-                pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
-                q = list(q)
-                for p in pick: 
-                    q[p] = pickle.loads(q[p])
-
-                data = q[1]
-                custom_aligned_text = f"""
-                <div style="display: flex; justify-content: space-between;">
-                <span style="text-align: left;">{stratergy}</span>
-                <span style="text-align: right; color: green">{q[19][1]}</span>
-                </div>
-                """
-                mark = f"""
-                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-                <span style="text-align: left;">   </span>
-                <span style="text-align: right;">ROI% | All Time</span>
-                </div>
-                """
-                tile.write(custom_aligned_text, unsafe_allow_html=True)
-                tile.markdown(mark, unsafe_allow_html=True)
-                pnl, cum_pnl = daily_returns_hist(q[3])
-                tile.pyplot(pnl)
-
-                ratios = f"""
-                <div style="display: flex; justify-content: space-between;">
-                <span style="text-align: left;">{q[36]}</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[37]}</span>
-                <span style="text-align: right;">{q[38]}</span>
-                </div>
-                """
-                cap = f"""
-                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-                <span style="text-align: left;">Sharpe Ratio</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> Calmar Ratio</span>
-                <span style="text-align: right;">Sortino Ratio</span>
-                </div>
-                """
-                tile.write(ratios, unsafe_allow_html=True)
-                tile.markdown(cap, unsafe_allow_html=True)
-
-                head_ = f"""
-                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-                <span style="text-align: left;">Initial Investment</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> HIT Ratio</span>
-                <span style="text-align: right;"> max. Drawdown</span>
-                </div>
-                """
-                disp = f"""
-                <div style="display: flex; justify-content: space-between;">
-                <span style="text-align: left;">{q[28]}</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[18]}</span>
-                <span style="text-align: right; color: red;">{q[8]}%</span>
-                </div>
-                """
-                tile.write("\n")
-                tile.markdown(head_, unsafe_allow_html=True)
-                tile.write(disp, unsafe_allow_html=True)
-                tile.write("\n")
-                tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[q, stratergy, i])
-            
+        rows = None
+        for i in range(num_row):
+            row1 = st.columns(3)
+            if rows is None:
+                rows = row1
             else:
-                tile = col.container(height=410, border=True)
-                centered_red_bold_large_text = """
-                <div style='display: flex; justify-content: center;'>
-                    <span style='color:green; font-size:30px;'><strong>ADD YOUR STRATEGY</strong></span>
-                </div>
-                """
-                tile.markdown(centered_red_bold_large_text, unsafe_allow_html=True)
-                
-                with tile:
-                    st.markdown("""
-                        <style>
-                        ::placeholder {
-                            text-align: center;
-                        }
-                        </style>
-                    """, unsafe_allow_html=True)
+                rows += row1
 
-                    user_input = st.text_input("", placeholder="Enter Name of the Strategy")
-                
-                with tile:
-                    uploaded_file = st.file_uploader("", type="csv")
-                    col1, col2 = st.columns([0.37, 0.63]) 
-                    with col2:
-                        if st.button("Submit"):
-                            if uploaded_file is not None and user_input is not None:
-                                file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
-                                data = pd.read_csv(uploaded_file)
-                                insert_sql(data, 1, user_input)
+        if rows is not None:
+            i = 0
+            for col in rows:
+                if i < len(Files):
+                    stratergy = Files[i]
+                    tile = col.container(height=410, border=True)
+                    with tile:
+                        col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
+
+                        with col1:
+                            st.write("By Algobulls") 
+
+                        with col3:
+                            with st.popover("Append Data"):
+                                uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")        
+                                if st.button("Submit", key=f"append_{stratergy}"):
+                                        if uploaded_file is not None:
+                                            csv_data = pd.read_csv(uploaded_file)
+                                            append_sql(csv_data, i=1, filename=stratergy)
+                                            st.rerun()    
+
+                        with col4:
+                            delete_button = st.button("Delete", key=f"delete{i}")
+                            if delete_button:
+                                delete_id(Files[i])
                                 st.rerun()
+                    
+                    # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
+                    # data = get_data_using_path(csv_path)
+                    # Analysis = get_analysis_obj(data)
+                    i += 1
+                    cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
+                    q  = cursor.fetchone()
+
+                    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
+                    q = list(q)
+                    for p in pick: 
+                        q[p] = pickle.loads(q[p])
+
+                    data = q[1]
+                    custom_aligned_text = f"""
+                    <div style="display: flex; justify-content: space-between;">
+                    <span style="text-align: left;">{stratergy}</span>
+                    <span style="text-align: right; color: green">{q[19][1]}</span>
+                    </div>
+                    """
+                    mark = f"""
+                    <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                    <span style="text-align: left;">   </span>
+                    <span style="text-align: right;">ROI% | All Time</span>
+                    </div>
+                    """
+                    tile.write(custom_aligned_text, unsafe_allow_html=True)
+                    tile.markdown(mark, unsafe_allow_html=True)
+                    pnl, cum_pnl = daily_returns_hist(q[3])
+                    tile.pyplot(pnl)
+
+                    ratios = f"""
+                    <div style="display: flex; justify-content: space-between;">
+                    <span style="text-align: left;">{q[36]}</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[37]}</span>
+                    <span style="text-align: right;">{q[38]}</span>
+                    </div>
+                    """
+                    cap = f"""
+                    <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                    <span style="text-align: left;">Sharpe Ratio</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> Calmar Ratio</span>
+                    <span style="text-align: right;">Sortino Ratio</span>
+                    </div>
+                    """
+                    tile.write(ratios, unsafe_allow_html=True)
+                    tile.markdown(cap, unsafe_allow_html=True)
+
+                    head_ = f"""
+                    <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                    <span style="text-align: left;">Initial Investment</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> HIT Ratio</span>
+                    <span style="text-align: right;"> max. Drawdown</span>
+                    </div>
+                    """
+                    disp = f"""
+                    <div style="display: flex; justify-content: space-between;">
+                    <span style="text-align: left;">{q[28]}</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[18]}</span>
+                    <span style="text-align: right; color: red;">{q[8]}%</span>
+                    </div>
+                    """
+                    tile.write("\n")
+                    tile.markdown(head_, unsafe_allow_html=True)
+                    tile.write(disp, unsafe_allow_html=True)
+                    tile.write("\n")
+                    tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[q, stratergy, i])
+                
+                else:
+                    tile = col.container(height=410, border=True)
+                    centered_red_bold_large_text = """
+                    <div style='display: flex; justify-content: center;'>
+                        <span style='color:green; font-size:30px;'><strong>ADD YOUR STRATEGY</strong></span>
+                    </div>
+                    """
+                    tile.markdown(centered_red_bold_large_text, unsafe_allow_html=True)
+                    
+                    with tile:
+                        st.markdown("""
+                            <style>
+                            ::placeholder {
+                                text-align: center;
+                            }
+                            </style>
+                        """, unsafe_allow_html=True)
+
+                        user_input = st.text_input("", placeholder="Enter Name of the Strategy")
+                    
+                    with tile:
+                        uploaded_file = st.file_uploader("", type="csv")
+                        col1, col2 = st.columns([0.37, 0.63]) 
+                        with col2:
+                            if st.button("Submit"):
+                                if uploaded_file is not None and user_input is not None:
+                                    file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
+                                    data = pd.read_csv(uploaded_file)
+                                    insert_sql(data, 1, user_input)
+                                    st.rerun()
 
 
 
-                tile.write("\n")
-                break
+                    tile.write("\n")
+                    break
 
-if st.session_state.clicked:
-    next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
-    with st.sidebar:
-        st.button("Return to cards", on_click=click_button_return)
+    if st.session_state.clicked:
+        next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
+        with st.sidebar:
+            st.button("Return to cards", on_click=click_button_return)
+
+
+
+st.sidebar.title("Navigation")
+option = st.sidebar.radio("Go to", ["Home", "About"])
+
+if option == "About":
+    about()
+else:
+    home()
 
 
 
