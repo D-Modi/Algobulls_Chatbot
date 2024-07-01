@@ -13,6 +13,7 @@ from datetime import datetime
 import os
 from sql import insert_sql, delete_id, calc, append_sql
 import warnings
+from customerPLBook_analysis import customerPLBook_Analysis
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
 st.set_page_config(layout="wide")
@@ -156,8 +157,8 @@ def display(weekday_returns, q):
     st.bar_chart(q[5], y=['pnl_absolute'] )
     st.write(f"***Most Profitable Day*** of the week: {weekday_returns[0][1]}")
     st.write(f"***Least Profitable Day*** of the week: {weekday_returns[1][1]}")
-    tab = q[5]['pnl_absolute']
-    st.table(tab)
+    table_data = q[5]['pnl_absolute']
+    st.table(table_data)
 
 #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def daily_returns_hist(daily_returns):
@@ -583,11 +584,12 @@ def get_files(names):
     Files = [row[0] for row in names]
     return Files
         
-def about():
-    st.title("About")
-    st.write("Welcome to the About page!")
+def CustomerPLBook():
+    customerPLBook_analysis_streamlit = customerPLBook_Analysis()
+    customerPLBook_analysis_streamlit.run()
 
 def home():
+    
     if not st.session_state.clicked:
 
         conn = sqlite3.connect('strategy_analysis.db')
@@ -746,14 +748,19 @@ def home():
 
 
 
-st.sidebar.title("Navigation")
-option = st.sidebar.radio("Go to", ["Home", "About"])
+# st.sidebar.title("Navigation")
+# option = st.sidebar.radio("Go to", ["Home", "CustomerPLBook Analysis"])
 
-if option == "About":
-    about()
-else:
+# if option == "CustomerPLBook Analysis":
+#     CustomerPLBook()
+# else:
+#     home()
+
+tab_home, tab_customer = st.tabs(["Home", "CustomerPLBook Analysis"])
+with tab_home:
     home()
-
+with tab_customer:
+    CustomerPLBook()
 
 
 
