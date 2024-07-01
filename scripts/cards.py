@@ -11,7 +11,13 @@ import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
 from datetime import datetime
 import os
-from sql import insert_sql, delete_id, calc
+from sql import insert_sql, delete_id, calc, append_sql
+import warnings
+from customerPLBook_analysis import customerPLBook_Analysis
+
+warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
+st.set_page_config(layout="wide")
+
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False 
@@ -49,34 +55,43 @@ def click_button_arg(a,b,c):
     st.session_state['stra'] = b
     st.session_state['index'] = c
 
-def hash_func(q):
-    return q[1]
-
-###############################################################################################
-
 def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
-    
-def htmap(data, days):        
+
+def htmap(data, days):
     data = np.array(data['pnl_absolute'].tolist())
     data = data[-1 * days:]
-    m = 5 * int(len(data)/ 5)
+    m = 5 * int(len(data) / 5)
     data = data[:m]
     data = np.reshape(data, (5, -1))
     line_width = 0.8
     linecolor = "White"
-    box_width = int(m*2/25) + 2
+    box_width = int(m * 2 / 25) + 2
 
-    c = ["darkred","red","lightcoral","white", "palegreen","green","darkgreen"]
-    v = [0,.15,.4,.5,0.6,.9,1.]
-    l = list(zip(v,c))
-    cm=LinearSegmentedColormap.from_list('rg',l, N=256)
+    c = ["darkred", "red", "lightcoral", "white", "palegreen", "green", "darkgreen"]
+    v = [0, .15, .4, .5, 0.6, .9, 1.]
+    l = list(zip(v, c))
+    cm = LinearSegmentedColormap.from_list('rg', l, N=256)
 
-    hm, ax = plt.subplots(figsize=(box_width,2), dpi=400)
-    sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax) 
+    hm, ax = plt.subplots(figsize=(box_width, 2), dpi=400)
+    sn.heatmap(data=data, linecolor=linecolor, linewidths=line_width, cmap=cm, center=0, ax=ax)
+    plt.savefig("temp_plot.png", bbox_inches='tight', pad_inches=0)
 
-    st.write(hm)
+    # Load the saved image
+    with open("temp_plot.png", "rb") as img_file:
+        img_base64 = base64.b64encode(img_file.read()).decode()
+
+    
+    height = 200
+    container = st.container(height = 220, border=True)
+    # HTML to display image with horizontal scroll
+    html_code = f'''
+    <div style="height:{height}px; overflow-x: sroll;">
+            <img src="data:image/png;base64,{img_base64}"; height="100%"; width="auto">
+    </div>
+    '''
+    container.write(html_code, unsafe_allow_html=True)
 
 def freq_hist(profit, num):
     num.insert(0, "")  
@@ -89,7 +104,8 @@ def freq_hist(profit, num):
     fig, ax = plt.subplots()
     ax.bar(r - 0.5, profit, color='b', width=width, align='center', label='Profit')
     for index, value in enumerate(profit):
-        ax.text(index + 0.5, value + 1, str(value), ha='center')
+        if value != 0:
+            ax.text(index + 0.5, value, str(value), ha='center')
     ax.set_xlabel("Value")
     ax.set_ylabel("Frequency")
     ax.set_xticks(np.arange(len(num)))
@@ -98,50 +114,53 @@ def freq_hist(profit, num):
 
     return fig
 
-def daisply(daily_returns, Quant, col):
-    if Quant == "Day":
+def daisply(daily_returns, period, csv):
+    strings = []
+    values = []
+    if period == "Day":
         st.header("Daily Analysis")
     else:
-        st.header(f"{Quant}ly Analysis")
-        st.write(f"***{Quant}ly Average Returns***: {daily_returns[1][0]}")
-        st.write(f"***{Quant}ly Average Returns %***: {daily_returns[1][1]}%")
+        strings.extend([f"{period}ly Average Returns", f"{period}ly Average Returns %" ])
+        values.extend([daily_returns[1][0], daily_returns[1][1]])
+        st.header(f"{period}ly Analysis")
+        st.write(f"***{period}ly Average Returns***: {daily_returns[1][0]}")
+        st.write(f"***{period}ly Average Returns %***: {daily_returns[1][1]}%")
     
-    #days_hist, days_tab = Alanyze.compare_hist(daily_returns, [1000, 2000, 3000, 4000, 5000], Quant)
     freq_hist_py = freq_hist(daily_returns[2], [-5000,-4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000])
-
-
     st.subheader("Frequency of profits")
     st.pyplot(freq_hist_py)
     
     with st.expander("More information"):
-        st.write(f"Number of ***trading {Quant}s***: {daily_returns[3]}")
-        st.write(f"Number of ***Profitable {Quant}s***: {daily_returns[4]} {Quant}")
-        st.write(f"Number of ***Loss Making {Quant}s***: {daily_returns[5]} {Quant} ")
-        st.write(f"***Most Profitable {Quant}***: {daily_returns[6][1]}")
-        st.write(f"Maximum ***Gains*** in a {Quant}: {daily_returns[6][0]}")
-        st.write(f"***Least Profitable {Quant}***: {daily_returns[7][1]}")
-        st.write(f"Maximum ***Loss*** in a {Quant}: {daily_returns[7][0]}")
-        if Quant == "Day":
-            st.write(f"***Max Win Streak***: {daily_returns[8]}")
-            st.write(f"***Max Loss streak***: {daily_returns[9]}")
+        strings.extend([f"Number of trading {period}s", f"Number of Profitable {period}s", f"Number of Loss Making {period}s", f"Most Profitable {period}", f"Maximum Gains in a {period}", f"Least Profitable {period}", f"Maximum Loss in a {period}"])
+        values.extend([daily_returns[3], daily_returns[4], daily_returns[5], daily_returns[6][1], daily_returns[6][0], daily_returns[7][1], daily_returns[7][0]])
 
-    st.subheader(f"Profit/Loss Data per {Quant}")
-    st.bar_chart(col, y=['pnl_absolute'], width=500, height=800)
-    if 'cum_pnl' in col.columns:
+        if period == "Day":
+            strings.extend(["Max Win Streak", "Max Loss Streak"])
+            values.extend([daily_returns[8], daily_returns[9]])
+            
+        arr = np.array([strings, values]).T
+        df = pd.DataFrame(arr, columns=["", " "])
+        st.table(df.assign(hack='').set_index('hack'))
+        
+    if daily_returns[3]>=252:
+        st.subheader(f"Profit/Loss Data per {period} for last year")
+        st.bar_chart(csv[-252:], y=['pnl_absolute'], width=500, height=400)
+    else:
+        st.subheader(f"Profit/Loss Data per {period}")
+        st.bar_chart(csv, y=['pnl_absolute'], width=500, height=400)
+    if 'cum_pnl' in csv.columns:
         st.subheader("Cumulative Profit and loss")
-        st.line_chart(col, y=['cum_pnl'])
-    st.write(f"")
-    st.divider()
+        st.line_chart(csv, y=['cum_pnl'])
  
 def display(weekday_returns, q):
     st.subheader(f"Profit/Loss Data per Day of Week")
     st.bar_chart(q[5], y=['pnl_absolute'] )
     st.write(f"***Most Profitable Day*** of the week: {weekday_returns[0][1]}")
     st.write(f"***Least Profitable Day*** of the week: {weekday_returns[1][1]}")
-    tab = q[5]['pnl_absolute']
-    st.table(tab)
+    table_data = q[5]['pnl_absolute']
+    st.table(table_data)
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def daily_returns_hist(daily_returns):
         fig1, ax1 = plt.subplots(figsize=(10, 2))  
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
@@ -155,7 +174,7 @@ def daily_returns_hist(daily_returns):
         return fig1, fig2
 
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def is_valid_datetime(input_str):
     try:
         datetime.strptime(input_str, "%Y-%m-%d")
@@ -167,7 +186,7 @@ def is_valid_datetime(input_str):
         except ValueError:
             return False
         
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])
@@ -175,7 +194,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] >= target_date_str:
             return i
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
 def exit_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])[::-1]
@@ -183,22 +202,22 @@ def exit_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] <= target_date_str:
             return len(date_col)-i-1;
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_data_using_path(csv_path):
     data = pd.read_csv(csv_path)
     return data;
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_analysis_obj(data, stn):
     row = calc(data, i=1, filename=stn)
     return row;        
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, i=1, initial_inestent=initial_investment, filename=stn)
     return Analysis;    
 
-# @st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
+# #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
 def next_page(q, stratergy, i):
     
     data = q[1]
@@ -315,15 +334,15 @@ def next_page(q, stratergy, i):
     if entry_date_index > exit_date_index:
         entry_date_index = 0
         exit_date_index = len(data)-1
-    data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
-    print(data.columns)
-    q = get_analysis_obj(data, stratergy)
+
     subcol1, subcol2, subcol3 = st.columns([1.8, 1, 1])
     with subcol1:
         st.write("")
     with subcol2:
         if st.button("Submit"):
-            q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
+            if entry_date_index != 0 or exit_date_index != len(data) -1 or initial_investment != 150000:
+                data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
+                q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
     with subcol3:
         st.write("")
 
@@ -348,10 +367,8 @@ def next_page(q, stratergy, i):
     
     with tab3:
         Dur = [252*2, 252, 101,11, 22, 4]
-        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '15 Days', '30 Days', '3 Days']
-        returns = [f"{q[19][1]}%"]
-        for i in range(len(Dur)):
-            returns.append(f"{q[44-i]}%")
+        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '30 Days', '15 Days', '3 Days']
+        returns = [f"{q[19][1]}%", f"{q[44]}%", f"{q[43]}%", f"{q[42]}%", f"{q[40]}%", f"{q[41]}%", f"{q[39]}%"]
         arr = np.array([Duration, returns]).T
         df = pd.DataFrame(arr, columns=["Duration", "Returns"])
         
@@ -530,19 +547,20 @@ def next_page(q, stratergy, i):
             #plt.tight_layout()  # Adjust layout to prevent overlapping labels
  
     with tab1:
-        htmap(q[2], 90)        
+        st.subheader("All Time Heatmap")
+        htmap(q[2], -1)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
             a = st.button("Daily", use_container_width=True, on_click=click_button_disp, args=["Day", q[47], q[2]])
-        with co3:
-            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Month", q[48], q[3]])
         with co4:
+            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Month", q[48], q[3]])
+        with co3:
             a = st.button("Weekly", use_container_width=True, on_click=click_button_disp, args=["Week", q[49], q[4]])
         with co5:
             a = st.button("Yearly", use_container_width=True, on_click=click_button_disp, args=["Year", q[51], q[6]])
         with co6:
-            a = st.button("Day", use_container_width=True, on_click=click_button_disp, args=["WeekDay"])          
+            a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay",q[50],q[5]])          
         if st.session_state.button:
             if st.session_state["Time"] != "WeekDay":
                 daisply(st.session_state['rt'], st.session_state["Time"], st.session_state['i'])
@@ -560,166 +578,189 @@ def save_uploaded_file(uploaded_file, save_directory, file_name):
         f.write(uploaded_file.getbuffer())
     
     return file_path
-        
 
-@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_files(names):
     Files = [row[0] for row in names]
     return Files
+        
+def CustomerPLBook():
+    customerPLBook_analysis_streamlit = customerPLBook_Analysis()
+    customerPLBook_analysis_streamlit.run()
 
-# @st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
-# def main(Files):
-if not st.session_state.clicked:
-
-    st.set_page_config(layout="wide")
-
-    conn = sqlite3.connect('strategy_analysis.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT Id FROM StrategyData ')
-    names  = cursor.fetchall()
-    Files = get_files(names)
+def home():
     
-    num_file = len(Files)+1
-    num_row = num_file//3
-    if num_file%3 != 0:
-        num_row += 1
+    if not st.session_state.clicked:
 
-    rows = None
-    for i in range(num_row):
-        row1 = st.columns(3)
-        if rows is None:
-            rows = row1
-        else:
-            rows += row1
+        conn = sqlite3.connect('strategy_analysis.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT Id FROM StrategyData ')
+        names  = cursor.fetchall()
+        Files = get_files(names)
+        
+        num_file = len(Files)+1
+        num_row = num_file//3
+        if num_file%3 != 0:
+            num_row += 1
 
-    if rows is not None:
-        i = 0
-        for col in rows:
-            if i < len(Files):
-                tile = col.container(height=410, border=True)
-                with tile:
-                    col1, col2 = st.columns([0.8, 0.2]) 
-
-                    with col1:
-                        st.write("By Algobulls") 
-
-                    with col2:
-                        delete_button = st.button("Delete", key=f"delete{i}")
-                        if delete_button:
-                            delete_id(Files[i])
-                            st.rerun()
-                stratergy = Files[i]
-                # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
-                # data = get_data_using_path(csv_path)
-                # Analysis = get_analysis_obj(data)
-                i += 1
-                cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
-                q  = cursor.fetchone()
-
-                pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
-                q = list(q)
-                for p in pick: 
-                    q[p] = pickle.loads(q[p])
-
-                data = q[1]
-                custom_aligned_text = f"""
-                <div style="display: flex; justify-content: space-between;">
-                <span style="text-align: left;">{stratergy}</span>
-                <span style="text-align: right; color: green">{q[19][1]}</span>
-                </div>
-                """
-                mark = f"""
-                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-                <span style="text-align: left;">   </span>
-                <span style="text-align: right;">ROI% | All Time</span>
-                </div>
-                """
-                tile.write(custom_aligned_text, unsafe_allow_html=True)
-                tile.markdown(mark, unsafe_allow_html=True)
-                pnl, cum_pnl = daily_returns_hist(q[3])
-                tile.pyplot(pnl)
-
-                ratios = f"""
-                <div style="display: flex; justify-content: space-between;">
-                <span style="text-align: left;">{q[36]}</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[37]}</span>
-                <span style="text-align: right;">{q[38]}</span>
-                </div>
-                """
-                cap = f"""
-                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-                <span style="text-align: left;">Sharpe Ratio</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> Calmar Ratio</span>
-                <span style="text-align: right;">Sortino Ratio</span>
-                </div>
-                """
-                tile.write(ratios, unsafe_allow_html=True)
-                tile.markdown(cap, unsafe_allow_html=True)
-
-                head_ = f"""
-                <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
-                <span style="text-align: left;">Initial Investment</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> HIT Ratio</span>
-                <span style="text-align: right;"> max. Drawdown</span>
-                </div>
-                """
-                disp = f"""
-                <div style="display: flex; justify-content: space-between;">
-                <span style="text-align: left;">{q[28]}</span>
-                <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[18]}</span>
-                <span style="text-align: right; color: red;">{q[8]}%</span>
-                </div>
-                """
-                tile.write("\n")
-                tile.markdown(head_, unsafe_allow_html=True)
-                tile.write(disp, unsafe_allow_html=True)
-                tile.write("\n")
-                tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[q, stratergy, i])
-            
+        rows = None
+        for i in range(num_row):
+            row1 = st.columns(3)
+            if rows is None:
+                rows = row1
             else:
-                tile = col.container(height=410, border=True)
-                centered_red_bold_large_text = """
-                <div style='display: flex; justify-content: center;'>
-                    <span style='color:green; font-size:30px;'><strong>ADD YOUR STRATEGY</strong></span>
-                </div>
-                """
-                tile.markdown(centered_red_bold_large_text, unsafe_allow_html=True)
-                
-                with tile:
-                    st.markdown("""
-                        <style>
-                        ::placeholder {
-                            text-align: center;
-                        }
-                        </style>
-                    """, unsafe_allow_html=True)
+                rows += row1
 
-                    user_input = st.text_input("", placeholder="Enter Name of the Strategy")
-                
-                with tile:
-                    uploaded_file = st.file_uploader("", type="csv")
+        if rows is not None:
+            i = 0
+            for col in rows:
+                if i < len(Files):
+                    stratergy = Files[i]
+                    tile = col.container(height=410, border=True)
+                    with tile:
+                        col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
 
-                    if uploaded_file is not None and user_input != '':
-                        # save_directory = "files"
-                        file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
-                        data = pd.read_csv(uploaded_file)
-                        insert_sql(data, 1, file_name)
-                    
-                with tile:
-                    col1, col2 = st.columns([0.37, 0.63]) 
+                        with col1:
+                            st.write("By Algobulls") 
 
-                    with col1:
-                        tile.write("") 
+                        with col3:
+                            with st.popover("Append Data"):
+                                uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")        
+                                if st.button("Submit", key=f"append_{stratergy}"):
+                                        if uploaded_file is not None:
+                                            csv_data = pd.read_csv(uploaded_file)
+                                            append_sql(csv_data, i=1, filename=stratergy)
+                                            st.rerun()    
 
-                    with col2:
-                        if st.button("Submit"):
-                            if uploaded_file is not None and user_input is not None:
+                        with col4:
+                            delete_button = st.button("Delete", key=f"delete{i}")
+                            if delete_button:
+                                delete_id(Files[i])
                                 st.rerun()
+                    
+                    # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
+                    # data = get_data_using_path(csv_path)
+                    # Analysis = get_analysis_obj(data)
+                    i += 1
+                    cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
+                    q  = cursor.fetchone()
 
-                tile.write("\n")
-                break
+                    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
+                    q = list(q)
+                    for p in pick: 
+                        q[p] = pickle.loads(q[p])
 
-if st.session_state.clicked:
-    next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
-    with st.sidebar:
-        st.button("Return to cards", on_click=click_button_return)
+                    data = q[1]
+                    custom_aligned_text = f"""
+                    <div style="display: flex; justify-content: space-between;">
+                    <span style="text-align: left;">{stratergy}</span>
+                    <span style="text-align: right; color: green">{q[19][1]}</span>
+                    </div>
+                    """
+                    mark = f"""
+                    <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                    <span style="text-align: left;">   </span>
+                    <span style="text-align: right;">ROI% | All Time</span>
+                    </div>
+                    """
+                    tile.write(custom_aligned_text, unsafe_allow_html=True)
+                    tile.markdown(mark, unsafe_allow_html=True)
+                    pnl, cum_pnl = daily_returns_hist(q[3])
+                    tile.pyplot(pnl)
+
+                    ratios = f"""
+                    <div style="display: flex; justify-content: space-between;">
+                    <span style="text-align: left;">{q[36]}</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[37]}</span>
+                    <span style="text-align: right;">{q[38]}</span>
+                    </div>
+                    """
+                    cap = f"""
+                    <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                    <span style="text-align: left;">Sharpe Ratio</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> Calmar Ratio</span>
+                    <span style="text-align: right;">Sortino Ratio</span>
+                    </div>
+                    """
+                    tile.write(ratios, unsafe_allow_html=True)
+                    tile.markdown(cap, unsafe_allow_html=True)
+
+                    head_ = f"""
+                    <div style="display: flex; justify-content: space-between; color: grey; font-size: 12px;">
+                    <span style="text-align: left;">Initial Investment</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> HIT Ratio</span>
+                    <span style="text-align: right;"> max. Drawdown</span>
+                    </div>
+                    """
+                    disp = f"""
+                    <div style="display: flex; justify-content: space-between;">
+                    <span style="text-align: left;">{q[28]}</span>
+                    <span style="text-align: center; flex-grow: 1; text-align: center;"> {q[18]}</span>
+                    <span style="text-align: right; color: red;">{q[8]}%</span>
+                    </div>
+                    """
+                    tile.write("\n")
+                    tile.markdown(head_, unsafe_allow_html=True)
+                    tile.write(disp, unsafe_allow_html=True)
+                    tile.write("\n")
+                    tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[q, stratergy, i])
+                
+                else:
+                    tile = col.container(height=410, border=True)
+                    centered_red_bold_large_text = """
+                    <div style='display: flex; justify-content: center;'>
+                        <span style='color:green; font-size:30px;'><strong>ADD YOUR STRATEGY</strong></span>
+                    </div>
+                    """
+                    tile.markdown(centered_red_bold_large_text, unsafe_allow_html=True)
+                    
+                    with tile:
+                        st.markdown("""
+                            <style>
+                            ::placeholder {
+                                text-align: center;
+                            }
+                            </style>
+                        """, unsafe_allow_html=True)
+
+                        user_input = st.text_input("", placeholder="Enter Name of the Strategy")
+                    
+                    with tile:
+                        uploaded_file = st.file_uploader("", type="csv")
+                        col1, col2 = st.columns([0.37, 0.63]) 
+                        with col2:
+                            if st.button("Submit"):
+                                if uploaded_file is not None and user_input is not None:
+                                    file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
+                                    data = pd.read_csv(uploaded_file)
+                                    insert_sql(data, 1, user_input)
+                                    st.rerun()
+
+
+
+                    tile.write("\n")
+                    break
+
+    if st.session_state.clicked:
+        next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
+        with st.sidebar:
+            st.button("Return to cards", on_click=click_button_return)
+
+
+
+# st.sidebar.title("Navigation")
+# option = st.sidebar.radio("Go to", ["Home", "CustomerPLBook Analysis"])
+
+# if option == "CustomerPLBook Analysis":
+#     CustomerPLBook()
+# else:
+#     home()
+
+tab_home, tab_customer = st.tabs(["Home", "CustomerPLBook Analysis"])
+with tab_home:
+    home()
+with tab_customer:
+    CustomerPLBook()
+
+
+

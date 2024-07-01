@@ -8,9 +8,8 @@ from statistics import mean
 
 class StatergyAnalysis:
     
-    def __init__(self, csv_data, i=0, number=150000):
-        self.i = i
-        self.csv_data = self.new_csv(csv_data , i)
+    def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False):
+        self.csv_data = self.new_csv(csv_data , is_dataframe)
         self.initial_investment = number
         self.daily_returnts = None
         self.monthly_returns = None
@@ -41,8 +40,8 @@ class StatergyAnalysis:
         self.profit = self.max_profit(self.csv_data)
         self.loss = self.max_profit(self.csv_data, i=4)
         
-    def new_csv(Self, filepath, i):
-        if i == 0:
+    def new_csv(Self, filepath, is_dataframe):
+        if is_dataframe == 0:
             data = pd.read_csv(filepath)
         else:
             data = pd.DataFrame(filepath)
@@ -82,20 +81,20 @@ class StatergyAnalysis:
             data['weekday'] = data['weekday'].dt.strftime('%a')
         return data
         
-    def daily_equity_Curve(self):
-        daily_equity_curve = self.csv_data.groupby('Day')['equity_curve'].last()
+    def daily_equity_Curve(self, customerPLBook=False):
+        if customerPLBook:
+            daily_equity_curve = self.daily_returnts['cum_pnl'] + self.initial_investment
+        else:
+            daily_equity_curve = self.csv_data.groupby('Day')['equity_curve'].last()
         self.equity_PctChange = daily_equity_curve.pct_change().dropna()
-        #self.equity = self.daily_returnts['cum_pnl'] + self.initial_investment
-        #self.equity = self.csv_data['equity_curve']
-        #self.equity_PctChange = self.equity.pct_change().dropna()
         self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
-        daily_mean = self.equity_PctChange.mean() 
-        daily_std =  self.equity_PctChange.std()
         self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
 
-
-    def yearlyVola(self):
-        equity = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
+    def yearlyVola(self, customerPLBook):
+        if customerPLBook:
+            equity = self.csv_data['equity_calculated']
+        else:
+            equity = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
         equity_PctChange = equity.pct_change().dropna()
         self.annual_std = equity_PctChange.std() * np.sqrt(252) 
         self.annual_mean = equity_PctChange.mean() * np.sqrt(252) 
@@ -130,13 +129,7 @@ class StatergyAnalysis:
         yearly_returns[['pnl_absolute', 'cum_pnl']]
         self.yearly_returns =yearly_returns[['pnl_absolute', 'cum_pnl']]
 
-        return daily_analysis, monthly_analysis, weekday_returns, weekly_returns, yearly_returns 
-    
-    def daily_ana(self):
-        daily_returns = self.csv_data.groupby('Day').sum(numeric_only = True)
-        daily_returns['cum_pnl'] = daily_returns['pnl_absolute'].cumsum()
-        daily_analysis = daily_returns[['pnl_absolute', 'cum_pnl']]
-        self.daily_returnts = daily_analysis      
+        return daily_analysis, monthly_analysis, weekday_returns, weekly_returns, yearly_returns   
 
     def max_profit(self, returns, i=1):
         if i ==1:
@@ -207,22 +200,17 @@ class StatergyAnalysis:
         avg_returns_pct = daily_returns['returns'].mean()
         return [round(avg_returns, 2), round(avg_returns_pct, 2)]
     
-    def drawdown(self, i=0, initial_investment=None, max_eq=0 ):
+    def drawdown(self, customerPLBook=False ):
     
-        if i != 0:
-            if initial_investment is None:
-                initial_investment = self.initial_investment
+        if customerPLBook:
             self.csv_data['pnl_cumulative'] = self.csv_data['pnl_absolute'].cumsum()
-            self.csv_data['equity_pnl'] = self.csv_data['pnl_cumulative'] + initial_investment
-            self.csv_data['cum_max'] = self.csv_data['equity_pnl'].cummax()
-            self.csv_data.loc[self.csv_data['cum_max'] >= max_eq, 'cum_max'] = max_eq
-            self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']        
-            self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['cum_max'])*100
+            self.csv_data['equity_calculated'] = self.csv_data['pnl_cumulative'] + self.initial_investment
+            self.csv_data['equity_cum_max'] = self.csv_data['equity_calculated'].cummax()
+            self.csv_data['drawdown'] = self.csv_data['equity_calculated'] - self.csv_data['equity_cum_max']        
+            self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['equity_cum_max'])*100
         else:
-            self.csv_data['cum_max'] = self.csv_data['equity_curve'].cummax()
-            self.csv_data.loc[self.csv_data['cum_max'] <= max_eq, 'cum_max'] = max_eq  
-            #self.csv_data['drawdown'] = self.csv_data['equity_pnl'] - self.csv_data['cum_max']        
-            self.csv_data['drawdown'] = self.csv_data['equity_curve'] - self.csv_data['cum_max']
+            self.csv_data['equity_cum_max'] = self.csv_data['equity_curve'].cummax()
+            self.csv_data['drawdown'] = self.csv_data['equity_curve'] - self.csv_data['equity_cum_max']
             self.csv_data['drawdown_pct'] = self.csv_data['drawdown_percentage']
             
         return round(self.csv_data['drawdown'].min(), 2), round(self.csv_data['drawdown_pct'].min(), 2)
@@ -240,7 +228,7 @@ class StatergyAnalysis:
         return fig1, fig2
 
     def roi(self, monthly_returns=None):
-        if monthly_returns == None:
+        if monthly_returns is None:
             monthly_returns = self.monthly_returns
         ROI = monthly_returns[['cum_pnl']].iloc[-1]
         ROI_perct = round((ROI.values[0]/self.initial_investment)*100,2)
@@ -259,7 +247,7 @@ class StatergyAnalysis:
     def trading_num(self, returns):
         return len(returns)
 
-    def compare_hist(self, returns, num, Quant):
+    def compare_hist(self, returns, num, Period):
         
         df = pd.DataFrame()
         df["Value"] = num
@@ -280,7 +268,7 @@ class StatergyAnalysis:
         ax.bar(r, profit, color = 'b', width = width, label='Profit')
         ax.bar(r + width, loss, color = 'r', width = width, label='Loss') 
         ax.set_xlabel("Value") 
-        ax.set_ylabel(f"Number of {Quant}") 
+        ax.set_ylabel(f"Number of {Period}") 
         ax.set_xticks(r + width / 2)
         ax.set_xticklabels(num)
         ax.legend() 
@@ -313,7 +301,8 @@ class StatergyAnalysis:
         fig, ax = plt.subplots()
         ax.bar(r - 0.5, profit, color='b', width=width, align='center', label='Profit')
         for index, value in enumerate(profit):
-            ax.text(index + 0.5, value + 1, str(value), ha='center')
+            if value > 0:
+                ax.text(index + 0.5, value, str(value), ha='center')
         ax.set_xlabel("Value")
         ax.set_ylabel("Frequency")
         ax.set_xticks(np.arange(len(num)))

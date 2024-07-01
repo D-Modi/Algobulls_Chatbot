@@ -4,170 +4,190 @@ from stratrgy_analysis import StatergyAnalysis
 import pandas as pd
 import numpy as np
 
-def Ans(Alanyze):    
-    daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Alanyze.analysis()
-
-    st.write(f"***Max Drawdown***: {Alanyze.drawdown_max}")
-    st.write(f"***Maximum Drawdowm percentage***: {Alanyze.drawdown_pct}")
-    st.subheader("Drawdown Curve")
-    st.line_chart(Alanyze.csv_data, y='drawdown_percentage', x='Day')
-    st.write(f"***Average loss per losing trade***: {Alanyze.avgProfit(Alanyze.csv_data, -1)}")
-    st.write(f"***Average gain per winning trade***: {Alanyze.avgProfit(Alanyze.csv_data, 1)}")
-    st.write(f"***Maximum Gains***: {Alanyze.max_profit(Alanyze.csv_data)[0]}")
-    st.write(f"***Minimum Gains***: {Alanyze.min_profit(Alanyze.csv_data)[0]}")
-    st.write(f"Number of ***short trades***: {Alanyze.num_tradeType('short')}")
-    st.write(f"Number of ***long trades***: {Alanyze.num_tradeType('long')}")
-    st.write (f"***Average Trades per Day***: {Alanyze.avgTrades(daily_returns)}")
-    st.write(f"Number of ***wins***: {Alanyze.num_loss(Alanyze.csv_data, 1)}")
-    st.write(f"Number of ***losses***: {Alanyze.num_loss(Alanyze.csv_data, -1)}")
-    st.write(f"***HIT Ratio***: {Alanyze.HIT()}")
-    st.write(f"***ROI***: {Alanyze.roi(monthly_returns)[0]}")
-    st.write(f"***ROI %***: {Alanyze.roi(monthly_returns)[1]}%")
-    st.write(f"***Profit Factor***: {Alanyze.ProfitFactor()}")
-    st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(Alanyze.csv_data, 1)}")
-    st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(Alanyze.csv_data, -1)}")
-    if month:
-        last_month_data = daily_returns.iloc[-21:]
-        st.write(f"Win Rate for ***last Month***: {Alanyze.win_rate(last_month_data)}")
-    if week:
-        last_month_data = daily_returns.iloc[-6:]
-        st.write(f"Win Rate for ***last Week***: {Alanyze.win_rate(last_month_data)}")
-    if year:
-        last_month_data = daily_returns.iloc[-213:]
-        st.write(f"Win Rate for ***last Year***: {Alanyze.win_rate(last_month_data)}")
-    if months6:
-        last_month_data = daily_returns.iloc[-101:]
-        st.write(f"Win Rate for ***last 6 Months***: {Alanyze.win_rate(last_month_data)}")
-    if quater:
-        last_month_data = daily_returns.iloc[-59:]
-        st.write(f"Win Rate for ***last Quater:*** {Alanyze.win_rate(last_month_data)}")
-
-    st.subheader("Equity Curve")
-    st.line_chart(Alanyze.csv_data, y='equity_curve', x='Day')
-    if threeD:
-        st.write(f"Returns for the ***last 3 Days***: {Alanyze.Treturns(4)[1]}%")
-    if thirtyD:
-        st.write(f"Returns for the ***last 30 Days***: {Alanyze.Treturns(22)[1]}%")
-    if twoW:
-        st.write(f"Returns for the ***last 2 Weeks***: {Alanyze.Treturns(11)[1]}%")
-    if sixM:
-        st.write(f"Returns for the ***last 6 Months***: {Alanyze.Treturns(101)[1]}%")
-    if oneY:
-        st.write(f"Returns for the ***last 1 Year***: {Alanyze.Treturns(213)[1]}%")
-    if twoY:
-        st.write(f"Returns for the ***last 2 Years***: {Alanyze.Treturns(213*2)[1]}%")
-
-    if Daily:
-        daisply(daily_returns, "Day")
-    if Monthly:
-        daisply(monthly_returns, "Month")
-    if Yearly:
-        daisply(yearly_returns, "Year")
-    if Weekly:
-        daisply(weekly_returns, "Week")
-    if Day:
-        display(weekday_returns)
-
-def daisply(daily_returns, Quant):
-    print(Quant)
-    if Quant == "Day":
-        st.header("Daily Analysis")
-    else:
-        st.header(f"{Quant}ly Analysis")
-        st.write(f"***{Quant}ly Average Returns***: {Alanyze.avgReturns(daily_returns)[0]}")
-        st.write(f"***{Quant}ly Average Returns %***: {Alanyze.avgReturns(daily_returns)[1]}%")
+class customerPLBook_Analysis:
     
-    days_hist, days_tab = Alanyze.compare_hist(daily_returns, [1000, 2000, 3000, 4000, 5000], Quant)
-    freq_hist = Alanyze.freq_hist(daily_returns, [-5000,-4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000])
+    def __init__(self):
+        self.Daily = None
+        self.Weekly = None
+        self.Monthly = None
+        self.Yearly = None
+        self.Day = None
+        self.three_days = None
+        self.month = None
+        self.week = None
+        self.year = None
+        self.month6 = None
+        self.quater = None
+        self.two_week = None
+        self.thirty_days = None
+        self.six_months = None
+        self.one_year = None
+        self.Two_years = None
 
-    st.subheader(f"Number of {Quant} of profit/loss above a threshold") 
-    st.pyplot(days_hist)
-    st.subheader("Frequency of profits")
-    st.pyplot(freq_hist)
-    
-    with st.expander("More information"):
-        st.write(f"Number of ***trading {Quant}s***: {Alanyze.trading_num(daily_returns)}")
-        st.write(f"Number of ***Profitable {Quant}s***: {Alanyze.num_loss(daily_returns, 1)} {Quant}")
-        st.write(f"Number of ***Loss Making {Quant}s***: {Alanyze.num_loss(daily_returns, -1)} {Quant} ")
-        st.write(f"***Most Profitable {Quant}***: {Alanyze.max_profit(daily_returns)[1]}")
-        st.write(f"Maximum ***Gains*** in a {Quant}: {Alanyze.max_profit(daily_returns)[0]}")
-        st.write(f"***Least Profitable {Quant}***: {Alanyze.min_profit(daily_returns)[1]}")
-        st.write(f"Maximum ***Loss*** in a {Quant}: {Alanyze.min_profit(daily_returns)[0]}")
-        st.write(f"***Max Win Streak***: {Alanyze.max_consecutive(daily_returns, 1)}")
-        st.write(f"***Max Loss streak***: {Alanyze.max_consecutive(daily_returns, -1)}")
+            
+    def customerPLBook_analysis_display(self, Analysis):    
+        daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
 
-    st.subheader(f"Profit/Loss Data per {Quant}")
-    st.bar_chart(daily_returns, y=['pnl_absolute'] )
-    if 'cum_pnl' in daily_returns.columns:
-        st.subheader("Cumulative Profit and loss")
-        st.line_chart(daily_returns, y=['cum_pnl'])
-    st.write(f"")
-    st.divider()
+        st.write(f"***Max Drawdown***: {Analysis.drawdown_max}")
+        st.write(f"***Maximum Drawdowm percentage***: {Analysis.drawdown_pct}")
+        st.subheader("Drawdown Curve")
+        st.line_chart(Analysis.csv_data, y='drawdown_pct', x='Day')
+        st.write(f"***Average loss per losing trade***: {Analysis.avgProfit(Analysis.csv_data, -1)[0]}")
+        st.write(f"***Average gain per winning trade***: {Analysis.avgProfit(Analysis.csv_data, 1)[0]}")
+        st.write(f"***Maximum Gains***: {Analysis.max_profit(Analysis.csv_data)[0]}")
+        st.write(f"***Minimum Gains***: {Analysis.min_profit(Analysis.csv_data)[0]}")
+        st.write(f"Number of ***short trades***: {Analysis.num_tradeType('short')}")
+        st.write(f"Number of ***long trades***: {Analysis.num_tradeType('long')}")
+        st.write (f"***Average Trades per Day***: {Analysis.avgTrades(daily_returns)}")
+        st.write(f"Number of ***wins***: {Analysis.num_loss(Analysis.csv_data, 1)}")
+        st.write(f"Number of ***losses***: {Analysis.num_loss(Analysis.csv_data, -1)}")
+        st.write(f"***HIT Ratio***: {Analysis.HIT()}")
+        st.write(f"***ROI***: {Analysis.roi(monthly_returns)[0]}")
+        st.write(f"***ROI %***: {Analysis.roi(monthly_returns)[1]}%")
+        st.write(f"***Profit Factor***: {Analysis.ProfitFactor()[0]}")
+        st.write(f"***Max Win Streak***: {Analysis.max_consecutive(Analysis.csv_data, 1)}")
+        st.write(f"***Max Loss streak***: {Analysis.max_consecutive(Analysis.csv_data, -1)}")
+        if self.month:
+            last_month_data = daily_returns.iloc[-21:]
+            st.write(f"Win Rate for ***last Month***: {Analysis.win_rate(last_month_data)}")
+        if self.week:
+            last_month_data = daily_returns.iloc[-6:]
+            st.write(f"Win Rate for ***last Week***: {Analysis.win_rate(last_month_data)}")
+        if self.year:
+            last_month_data = daily_returns.iloc[-213:]
+            st.write(f"Win Rate for ***last Year***: {Analysis.win_rate(last_month_data)}")
+        if self.month6:
+            last_month_data = daily_returns.iloc[-101:]
+            st.write(f"Win Rate for ***last 6 Months***: {Analysis.win_rate(last_month_data)}")
+        if self.quater:
+            last_month_data = daily_returns.iloc[-59:]
+            st.write(f"Win Rate for ***last Quater:*** {Analysis.win_rate(last_month_data)}")
 
-def display(weekday_returns):
-    st.subheader(f"Profit/Loss Data per Day of Week")
-    st.bar_chart(weekday_returns, y=['pnl_absolute'] )
-    st.write(f"***Most Profitable Day*** of the week: {Alanyze.max_profit(weekday_returns)[1]}")
-    st.write(f"***Least Profitable Day*** of the week: {Alanyze.min_profit(weekday_returns)[1]}")
-    tab = weekday_returns['pnl_absolute']
-    st.table(tab)
-    
-st.title("CSV File Uploader")
-uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
-default = 150000
-# Read CSV file
-if uploaded_file is not None:
-    st.title("Analysis of Uploaded File")
-    df = pd.read_csv(uploaded_file)
-  
-    dfs = {}
+        st.subheader("Equity Curve")
+        st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
+        if self.three_days:
+            st.write(f"Returns for the ***last 3 Days***: {Analysis.Treturns(4)[1]}%")
+        if self.thirty_days:
+            st.write(f"Returns for the ***last 30 Days***: {Analysis.Treturns(22)[1]}%")
+        if self.two_week:
+            st.write(f"Returns for the ***last 2 Weeks***: {Analysis.Treturns(11)[1]}%")
+        if self.six_months:
+            st.write(f"Returns for the ***last 6 Months***: {Analysis.Treturns(127)[1]}%")
+        if self.one_year:
+            st.write(f"Returns for the ***last 1 Year***: {Analysis.Treturns(253)[1]}%")
+        if self.Two_years:
+            st.write(f"Returns for the ***last 2 Years***: {Analysis.Treturns(505)[1]}%")
 
-    # Get unique id values
-    unique_ids = df['Startegy Name'].unique()
+        if self.Daily:
+            self.daisply(daily_returns, "Day", Analysis)
+        if self.Monthly:
+            self.daisply(monthly_returns, "Month", Analysis)
+        if self.Yearly:
+            self.daisply(yearly_returns, "Year", Analysis)
+        if self.Weekly:
+            self.daisply(weekly_returns, "Week", Analysis)
+        if self.Day:
+            self.display(weekday_returns, Analysis)
 
-    # Loop through the unique ids and create separate DataFrames
-    for uid in unique_ids:
-        dfs[uid] = df[df['Startegy Name'] == uid]
-    print(len(unique_ids))
-    unique_ids = np.insert(unique_ids, 0, "Complete Portfolio Analysis")
-    
-    with st.sidebar:
-        number = st.number_input("Enter initial investment", value=default, placeholder="Initial value taken as 150000")
-        st.write (f"Inital investment {number}")
-        option = st.radio(
-            "The stratergies being used are",
-            ("***" + x + "***" for x in unique_ids)
-        )
-        option = option[3:-3]
-        st.write("\n")
+    def daisply(self, daily_returns, Quant, Analysis):
+        print(Quant)
+        if Quant == "Day":
+            st.header("Daily Analysis")
+        else:
+            st.header(f"{Quant}ly Analysis")
+            st.write(f"***{Quant}ly Average Returns***: {Analysis.avgReturns(daily_returns)[0]}")
+            st.write(f"***{Quant}ly Average Returns %***: {Analysis.avgReturns(daily_returns)[1]}%")
+
+        #days_hist, days_tab = Analysis.compare_hist(daily_returns, [1000, 2000, 3000, 4000, 5000], Quant)
+        freq_hist = Analysis.freq_hist(daily_returns, [-5000,-4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000])
+        st.subheader("Frequency of profits")
+        st.pyplot(freq_hist)
+        if len(daily_returns) > 1:
+            with st.expander("More information"):
+                st.write(f"Number of ***trading {Quant}s***: {Analysis.trading_num(daily_returns)}")
+                st.write(f"Number of ***Profitable {Quant}s***: {Analysis.num_loss(daily_returns, 1)} {Quant}")
+                st.write(f"Number of ***Loss Making {Quant}s***: {Analysis.num_loss(daily_returns, -1)} {Quant} ")
+                st.write(f"***Most Profitable {Quant}***: {Analysis.max_profit(daily_returns)[1]}")
+                st.write(f"Maximum ***Gains*** in a {Quant}: {Analysis.max_profit(daily_returns)[0]}")
+                st.write(f"***Least Profitable {Quant}***: {Analysis.min_profit(daily_returns)[1]}")
+                st.write(f"Maximum ***Loss*** in a {Quant}: {Analysis.min_profit(daily_returns)[0]}")
+                st.write(f"***Max Win Streak***: {Analysis.max_consecutive(daily_returns, 1)}")
+                st.write(f"***Max Loss streak***: {Analysis.max_consecutive(daily_returns, -1)}")
+
+            st.subheader(f"Profit/Loss Data per {Quant}")
+            st.bar_chart(daily_returns, y=['pnl_absolute'] )
+            if 'cum_pnl' in daily_returns.columns:
+                st.subheader("Cumulative Profit and loss")
+                st.line_chart(daily_returns, y=['cum_pnl'])
+        st.write(f"")
+        st.divider()
+
+    def display(self, weekday_returns, Analysis):
+        st.subheader(f"Profit/Loss Data per Day of Week")
+        st.bar_chart(weekday_returns, y=['pnl_absolute'] )
+        st.write(f"***Most Profitable Day*** of the week: {Analysis.max_profit(weekday_returns)[1]}")
+        st.write(f"***Least Profitable Day*** of the week: {Analysis.min_profit(weekday_returns)[1]}")
+        tab = weekday_returns['pnl_absolute']
+        st.table(tab)
         
-        st.write ("Choose Display Options")
-        Daily = st.checkbox("Daily Analysis.", True)
-        Monthly = st.checkbox("Monthly Analysis", False)
-        Yearly = st.checkbox("Yearly Analysis", False)
-        Weekly = st.checkbox("Weekly Analysis", False)
-        Day = st.checkbox("Analysis based on day of week", False)
-        st.write("\n")
-        
-        st.write ("Show Returns For:")
-        threeD = st.checkbox("3 Days", False) 
-        twoW = st.checkbox("2 Weeks", False) 
-        thirtyD = st.checkbox("30 Days", False) 
-        sixM = st.checkbox("6 Months", False) 
-        oneY = st.checkbox("1 Years", False) 
-        twoY = st.checkbox("2 Years", False) 
-        st.write("\n")
-        
-        st.write ("Show Win Rate For:")
-        week = st.checkbox("Last Week", False)
-        month= st.checkbox("Last Month", False)
-        year= st.checkbox("Last Year", False)
-        months6= st.checkbox("Last 6 Months", False)
-        quater= st.checkbox("Last Quater", False)
+    def run(self):
+        st.title("CSV File Uploader")
+        uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+        default = 150000
+        if uploaded_file is not None:
+            st.title("Analysis of Uploaded File")
+            df = pd.read_csv(uploaded_file)
+    
+            dfs = {}
 
-    if option == "Complete Portfolio Analysis":
-        Alanyze = StatergyAnalysis(df, 1, number)
-    else:
-        Alanyze = StatergyAnalysis(dfs[option], 1, number)
-        st.title(f"Analyis Of Stratrergy ***{option}***")
-    Ans(Alanyze)
+        # Get unique id values
+            unique_ids = df['Startegy Name'].unique()
+
+        # Loop through the unique ids and create separate DataFrames
+            for uid in unique_ids:
+                dfs[uid] = df[df['Startegy Name'] == uid]
+            print(len(unique_ids))
+            unique_ids = np.insert(unique_ids, 0, "Complete Portfolio Analysis")
+        
+            with st.sidebar:
+                number = st.number_input("Enter initial investment", value=default, placeholder="Initial value taken as 150000")
+                st.write (f"Inital investment {number}")
+                option = st.radio(
+                "The stratergies being used are",
+                ("***" + x + "***" for x in unique_ids)
+            )
+                option = option[3:-3]
+                st.write("\n")
+            
+                st.write ("Choose Display Options")
+                self.Daily = st.checkbox("Daily Analysis.", True)
+                self.Monthly = st.checkbox("Monthly Analysis", False)
+                self.Yearly = st.checkbox("Yearly Analysis", False)
+                self.Weekly = st.checkbox("Weekly Analysis", False)
+                self.Day = st.checkbox("Analysis based on day of week", False)
+                st.write("\n")
+            
+                st.write ("Show Returns For:")
+                self.three_days = st.checkbox("3 Days", False) 
+                self.two_week = st.checkbox("2 Weeks", False) 
+                self.thirty_days = st.checkbox("30 Days", False) 
+                self.six_months = st.checkbox("6 Months", False) 
+                self.one_year = st.checkbox("1 Years", False) 
+                self.Two_years = st.checkbox("2 Years", False) 
+                st.write("\n")
+            
+                st.write ("Show Win Rate For:")
+                self.week = st.checkbox("Last Week", False)
+                self.month= st.checkbox("Last Month", False)
+                self.year= st.checkbox("Last Year", False)
+                self.month6= st.checkbox("Last 6 Months", False)
+                self.quater= st.checkbox("Last Quater", False)
+
+            if option == "Complete Portfolio Analysis":
+                Analysis = StatergyAnalysis(df, is_dataframe=1, number=number)
+            else:
+                Analysis = StatergyAnalysis(dfs[option], is_dataframe=1, number=number, customerPLBook=True)
+                st.title(f"Analyis Of Stratrergy ***{option}***")
+            self.customerPLBook_analysis_display(Analysis)
+
+
