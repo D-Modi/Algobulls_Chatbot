@@ -589,9 +589,7 @@ def CustomerPLBook():
     customerPLBook_analysis_streamlit.run()
 
 def home():
-    
     if not st.session_state.clicked:
-
         conn = sqlite3.connect('strategy_analysis.db')
         cursor = conn.cursor()
         cursor.execute('SELECT Id FROM StrategyData ')
