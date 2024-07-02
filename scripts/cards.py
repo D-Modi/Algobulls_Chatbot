@@ -55,12 +55,12 @@ def click_button_arg(a,b,c):
     st.session_state['stra'] = b
     st.session_state['index'] = c
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def htmap(data, days):
     data = np.array(data['pnl_absolute'].tolist())
     data = data[-1 * days:]
@@ -95,7 +95,7 @@ def htmap(data, days):
     '''
     container.write(html_code, unsafe_allow_html=True)
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def freq_hist(profit, num):
     num.insert(0, "")  
     num.append("")  
@@ -117,7 +117,7 @@ def freq_hist(profit, num):
 
     return fig
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def daisply(daily_returns, period, csv):
     strings = []
     values = []
@@ -135,21 +135,8 @@ def daisply(daily_returns, period, csv):
     st.pyplot(freq_hist_py)
     
     with st.expander("More information"):
-        strings.extend([f"Number of trading {period}s",
-                        f"Number of Profitable {period}s",
-                        f"Number of Loss Making {period}s", 
-                        f"Most Profitable {period}", 
-                        f"Maximum Gains in a {period}",
-                        f"Least Profitable {period}", 
-                        f"Maximum Loss in a {period}"])
-        
-        values.extend([daily_returns[3], 
-                       daily_returns[4], 
-                       daily_returns[5], 
-                       daily_returns[6][1], 
-                       daily_returns[6][0],
-                       daily_returns[7][1], 
-                       daily_returns[7][0]])
+        strings.extend([f"Number of trading {period}s", f"Number of Profitable {period}s", f"Number of Loss Making {period}s", f"Most Profitable {period}", f"Maximum Gains in a {period}", f"Least Profitable {period}", f"Maximum Loss in a {period}"])
+        values.extend([daily_returns[3], daily_returns[4], daily_returns[5], daily_returns[6][1], daily_returns[6][0], daily_returns[7][1], daily_returns[7][0]])
 
         if period == "Day":
             strings.extend(["Max Win Streak", "Max Loss Streak"])
@@ -169,7 +156,7 @@ def daisply(daily_returns, period, csv):
         st.subheader("Cumulative Profit and loss")
         st.line_chart(csv, y=['cum_pnl'])
  
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def display(weekday_returns, q):
     st.subheader(f"Profit/Loss Data per Day of Week")
     st.bar_chart(q[5], y=['pnl_absolute'] )
@@ -178,7 +165,7 @@ def display(weekday_returns, q):
     table_data = q[5]['pnl_absolute']
     st.table(table_data)
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def daily_returns_hist(daily_returns):
         fig1, ax1 = plt.subplots(figsize=(10, 2))  
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
@@ -192,7 +179,7 @@ def daily_returns_hist(daily_returns):
         return fig1, fig2
 
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def is_valid_datetime(input_str):
     try:
         datetime.strptime(input_str, "%Y-%m-%d")
@@ -204,7 +191,7 @@ def is_valid_datetime(input_str):
         except ValueError:
             return False
         
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])
@@ -212,7 +199,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] >= target_date_str:
             return i
 
-@st.cache_data(show_spinner=True, ttl=86400)     
+@st.cache_data(show_spinner=False, ttl=86400)     
 def exit_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])[::-1]
@@ -220,17 +207,17 @@ def exit_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] <= target_date_str:
             return len(date_col)-i-1;
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def get_data_using_path(csv_path):
     data = pd.read_csv(csv_path)
     return data;
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def get_analysis_obj(data, stn):
     row = calc(data, is_dataframe=1, filename=stn)
     return row;        
 
-@st.cache_data(show_spinner=True, ttl=86400)     
+@st.cache_data(show_spinner=False, ttl=86400)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, is_dataframe=1, initial_inestent=initial_investment, filename=stn)
     return Analysis;    
@@ -435,11 +422,11 @@ def next_page(q, stratergy, i):
             st.line_chart(q[2], y=['cum_pnl'])
             
         with bt1:
-            week = q[32][0]
-            month = q[31][0]
-            quat = q[35][0]
-            half = q[34][0]
-            yr = q[33][0]
+            week = q[32]
+            month = q[31]
+            quat = q[35]
+            half = q[34]
+            yr = q[33]
             
             
             c1, c2 = st.columns(2)
@@ -470,8 +457,8 @@ def next_page(q, stratergy, i):
                     q[25] = int.from_bytes(q[25], byteorder='little')
                 
                 strings = [
-                    "Average gain per losing trade: ",
-                    "Average loss per winning trade: ",
+                    "Average loss per losing trade: ",
+                    "Average gain per winning trade: ",
                     "Maximum Gains: ",
                     "Minimum Gains: ",
                     "Average Trades per Day: ",
@@ -565,12 +552,8 @@ def next_page(q, stratergy, i):
  
     with tab1:
         st.subheader("All Time Heatmap")
-<<<<<<< HEAD
-        htmap(q[2], 90)        
-=======
         days = st.slider("Select number of days", min_value=5, max_value=1000, value=100, step=5)
         htmap(q[2], days)        
->>>>>>> cards
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
@@ -601,7 +584,7 @@ def save_uploaded_file(uploaded_file, save_directory, file_name):
     
     return file_path
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def get_files(names):
     Files = [row[0] for row in names]
     return Files
@@ -649,7 +632,7 @@ def home():
                                 if st.button("Submit", key=f"append_{stratergy}"):
                                         if uploaded_file is not None:
                                             csv_data = pd.read_csv(uploaded_file)
-                                            append_sql(csv_data, is_dataframe=1, filename=stratergy)
+                                            append_sql(csv_data, i=1, filename=stratergy)
                                             st.rerun()    
 
                         with col4:
@@ -665,7 +648,7 @@ def home():
                     cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
                     q  = cursor.fetchone()
 
-                    pick = [1,2,3,4,5,6,9,10,19,30,31,32,33,34,35,47,48,49,50,51]
+                    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
                     q = list(q)
                     for p in pick: 
                         q[p] = pickle.loads(q[p])
@@ -753,8 +736,10 @@ def home():
                                 if uploaded_file is not None and user_input is not None:
                                     file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
                                     data = pd.read_csv(uploaded_file)
-                                    insert_sql(data, is_dataframe=1, filename=user_input)
+                                    insert_sql(data, 1, user_input)
                                     st.rerun()
+
+
 
                     tile.write("\n")
                     break
@@ -764,16 +749,6 @@ def home():
         with st.sidebar:
             st.button("Return to cards", on_click=click_button_return)
 
-<<<<<<< HEAD
-# st.sidebar.title("Navigation")
-# option = st.sidebar.radio("Go to", ["Home", "CustomerPLBook Analysis"])
-
-# if option == "CustomerPLBook Analysis":
-#     CustomerPLBook()
-# else:
-#     home()
-=======
->>>>>>> cards
 
 tab_home, tab_customer = st.tabs(["Home", "CustomerPLBook Analysis"])
 with tab_home:
