@@ -69,6 +69,7 @@ class StatergyAnalysis:
         if 'Day' not in data.columns:
             data['date'] = pd.to_datetime(data['entry_timestamp'])
             data = data.sort_values(by='date')
+            data = data.reset_index()
             data = data.drop(columns=['entry_timestamp'])
 
             data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
