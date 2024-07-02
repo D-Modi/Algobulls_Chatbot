@@ -431,11 +431,11 @@ def next_page(q, stratergy, i):
             st.line_chart(q[2], y=['cum_pnl'])
             
         with bt1:
-            week = q[32]
-            month = q[31]
-            quat = q[35]
-            half = q[34]
-            yr = q[33]
+            week = q[32][0]
+            month = q[31][0]
+            quat = q[35][0]
+            half = q[34][0]
+            yr = q[33][0]
             
             
             c1, c2 = st.columns(2)
@@ -656,7 +656,7 @@ def home():
                     cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
                     q  = cursor.fetchone()
 
-                    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
+                    pick = [1,2,3,4,5,6,9,10,19,30,31,32,33,34,35,47,48,49,50,51]
                     q = list(q)
                     for p in pick: 
                         q[p] = pickle.loads(q[p])

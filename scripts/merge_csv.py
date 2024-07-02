@@ -7,6 +7,8 @@ import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
 from statistics import mean 
 from stratrgy_analysis import StatergyAnalysis
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
 class merge_csv:
     
@@ -160,11 +162,31 @@ class merge_csv:
         positive_counts = positive_mask.groupby(grouped).cumsum()
         return positive_counts.max()
     
-    def Treturns(self, t):
-        cum_pnl = self.daily_returns_combined['cum_pnl'].tolist()
-        cum_pnl = cum_pnl[-1*t:]
-        ret = cum_pnl[-1] - cum_pnl[0]
-        return ret, round(ret*100/self.initial_investment, 2)
+    def date_calc(self, day=0, returns=None):
+        if returns is None:
+            returns = self.daily_returns_combined
+            
+        last_date = datetime.strptime(returns.index[-1], '%Y-%m-%d')
+        start_date = last_date - relativedelta(days=day)
+        
+        for i in returns.index:
+            date =  datetime.strptime(i, '%Y-%m-%d')
+            if date >= start_date:
+                start_date = date
+                break
+        new_date_str = start_date.strftime('%Y-%m-%d')
+        return new_date_str
+        
+    def Treturns(self, day=0, returns=None):
+        if returns is None:
+            returns = self.daily_returns_combined
+            
+        new_date_str = self.date_calc(day=day, returns=returns)
+        print(new_date_str)
+        final_equity_value = returns['cum_pnl'].iloc[-1]
+        start_equity_value = returns.loc[new_date_str, 'cum_pnl']
+        gain = final_equity_value - start_equity_value
+        return gain, round(gain*100/self.initial_investment, 2)
         
     def htmap(self, days):        
         data = np.array(self.daily_returns_combined['pnl_absolute'].tolist())
@@ -327,10 +349,17 @@ class merge_csv:
     def winR(self, df1, df2, r1, r2, d):
         if len(df2)>d*-1:
             return r2
-        rem = len(df2)
-        per = df1.iloc[d:].head(rem)
-        wins = len(per[per['pnl_absolute']>0])
-        fin = (r1 * d*(-1) + r2 * len(df2) - wins)/d*-1
+        rem = d*-1 - len(df2)
+        index_pos = -1*r1[1] + len(df1)
+        if rem < r1[1]:
+            per = df1.iloc[-1*r1[1]:].head(rem)
+            wins = len(per[per['pnl_absolute']>0])
+            fin = (r1[0] * r1[1] + r2[0] * len(df2) - wins)/d*-1
+        else:
+            diff = rem-r1[1]
+            rows_above = df1.iloc[max(index_pos-diff, 0):index_pos]
+            wins = len(rows_above[rows_above['pnl_absolute']>0])
+            fin = (r1[0] * r1[1] + r2[0] * r2[1] + wins)/d*-1
         return fin
           
     def drawdown_data2(self, max_eq=0 ):

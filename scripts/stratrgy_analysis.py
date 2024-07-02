@@ -182,29 +182,41 @@ class StatergyAnalysis:
     
 #Another Useless function
     def winCount(self, daily_returns, i):
-        wins = daily_returns[daily_returns['pnl_absolute']>=0]
+        wins = daily_returns[daily_returns['pnl_absolute']>0]
+        loss = daily_returns[daily_returns['pnl_absolute']<0]
+        
         if i >0:
             return len(wins)
         else:
-            return len(daily_returns) - len(wins)
-        
-    def Treturns(self,t, year=0, month=0, day=0, returns=None):
+            
+            return len(loss)
+    
+    def date_calc(self, day=0, returns=None):
         if returns is None:
             returns = self.daily_returnts
             
         last_date = datetime.strptime(returns.index[-1], '%Y-%m-%d')
-        start_date = last_date - relativedelta(years=year, months=month, days=day)
-        
+        start_date = last_date - relativedelta(days=day)
         for i in returns.index:
             date =  datetime.strptime(i, '%Y-%m-%d')
             if date >= start_date:
                 start_date = date
                 break
         new_date_str = start_date.strftime('%Y-%m-%d')
-        cum_pnl = returns['cum_pnl'].tolist()
-        cum_pnl = cum_pnl[-1*t:]
-        ret = cum_pnl[-1] - cum_pnl[0]
-        return ret, round(ret*100/self.initial_investment, 2)
+        index_number = returns.index.get_loc(new_date_str)
+        ind = returns['cum_pnl'].iloc[-(len(returns)-index_number)]
+        return new_date_str
+        
+    def Treturns(self, day=0, returns=None):
+        if returns is None:
+            returns = self.daily_returnts
+            
+        new_date_str = self.date_calc(day=day, returns=returns)
+        final_equity_value = returns['cum_pnl'].iloc[-1]
+        start_equity_value = returns.loc[new_date_str, 'cum_pnl']
+        gain = final_equity_value - start_equity_value
+        return gain, round(gain*100/self.initial_investment, 2)
+
 
     def avgReturns(self, daily_returns):
         daily_returns['returns'] = daily_returns['cum_pnl']/self.initial_investment *100
@@ -253,7 +265,7 @@ class StatergyAnalysis:
         if i == -1:
             return sum(returns['pnl_absolute'] < 0)
         else:
-            return sum(returns['pnl_absolute'] >=0)
+            return sum(returns['pnl_absolute'] >0)
         
 # try to remove this function
     def trading_num(self, returns):
@@ -292,7 +304,6 @@ class StatergyAnalysis:
         profit = np.zeros(12)
         for r in retrurn:
             val = int(r // 1000 + 6)
-            #print(val)
             if val < 0:
                 val = 0
             if val> 11:
@@ -403,11 +414,4 @@ class StatergyAnalysis:
 
         fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
         return fig
-csv_path = ["/home/dhruvi/Algobulls_Chatbot/files/StrategyBacktestingPLBook-STAB553.csv"]
-#csv_path = ["files/StrategyBacktestingPLBook-STAB700.csv", "files/StrategyBacktestingPLBook-STAB679.csv", "files/StrategyBacktestingPLBook-STAB729.csv", "files/StrategyBacktestingPLBook-STAB736.csv"]
-for i in csv_path:
-    Analysis = StatergyAnalysis(i)
-    print(type(Analysis.daily_returnts.index[-1]))
-    print(Analysis.daily_returnts.index[-1])
-    print(i)
-#calmar ratio corret karna hai
+
