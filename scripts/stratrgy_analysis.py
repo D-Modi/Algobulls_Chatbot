@@ -75,7 +75,7 @@ class StatergyAnalysis:
             data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
             data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
             data['Year'] = pd.to_datetime(data.date,format = '%Y-%m')
-            data['weekday'] = pd.to_datetime(data.date,format = '%a')\
+            data['weekday'] = pd.to_datetime(data.date,format = '%a')
             
             data['Day'] = data['Day'].dt.strftime('%Y-%m-%d')
             data['Week'] = data['Week'].dt.strftime('%Y-%U')
