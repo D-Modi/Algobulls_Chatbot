@@ -55,10 +55,12 @@ def click_button_arg(a,b,c):
     st.session_state['stra'] = b
     st.session_state['index'] = c
 
+@st.cache_data(show_spinner=True, ttl=86400)
 def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
+@st.cache_data(show_spinner=True, ttl=86400)
 def htmap(data, days):
     data = np.array(data['pnl_absolute'].tolist())
     data = data[-1 * days:]
@@ -93,6 +95,7 @@ def htmap(data, days):
     '''
     container.write(html_code, unsafe_allow_html=True)
 
+@st.cache_data(show_spinner=True, ttl=86400)
 def freq_hist(profit, num):
     num.insert(0, "")  
     num.append("")  
@@ -114,6 +117,7 @@ def freq_hist(profit, num):
 
     return fig
 
+@st.cache_data(show_spinner=True, ttl=86400)
 def daisply(daily_returns, period, csv):
     strings = []
     values = []
@@ -152,6 +156,7 @@ def daisply(daily_returns, period, csv):
         st.subheader("Cumulative Profit and loss")
         st.line_chart(csv, y=['cum_pnl'])
  
+@st.cache_data(show_spinner=True, ttl=86400)
 def display(weekday_returns, q):
     st.subheader(f"Profit/Loss Data per Day of Week")
     st.bar_chart(q[5], y=['pnl_absolute'] )
@@ -160,7 +165,7 @@ def display(weekday_returns, q):
     table_data = q[5]['pnl_absolute']
     st.table(table_data)
 
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=True, ttl=86400)
 def daily_returns_hist(daily_returns):
         fig1, ax1 = plt.subplots(figsize=(10, 2))  
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
@@ -174,7 +179,7 @@ def daily_returns_hist(daily_returns):
         return fig1, fig2
 
 
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=True, ttl=86400)
 def is_valid_datetime(input_str):
     try:
         datetime.strptime(input_str, "%Y-%m-%d")
@@ -186,7 +191,7 @@ def is_valid_datetime(input_str):
         except ValueError:
             return False
         
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=True, ttl=86400)
 def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])
@@ -194,7 +199,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] >= target_date_str:
             return i
 
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+@st.cache_data(show_spinner=True, ttl=86400)     
 def exit_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])[::-1]
@@ -202,22 +207,21 @@ def exit_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] <= target_date_str:
             return len(date_col)-i-1;
 
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=True, ttl=86400)
 def get_data_using_path(csv_path):
     data = pd.read_csv(csv_path)
     return data;
 
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=True, ttl=86400)
 def get_analysis_obj(data, stn):
-    row = calc(data, i=1, filename=stn)
+    row = calc(data, is_dataframe=1, filename=stn)
     return row;        
 
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
+@st.cache_data(show_spinner=True, ttl=86400)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
-    Analysis = calc(data, i=1, initial_inestent=initial_investment, filename=stn)
+    Analysis = calc(data, is_dataframe=1, initial_inestent=initial_investment, filename=stn)
     return Analysis;    
 
-# #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
 def next_page(q, stratergy, i):
     
     data = q[1]
@@ -548,7 +552,8 @@ def next_page(q, stratergy, i):
  
     with tab1:
         st.subheader("All Time Heatmap")
-        htmap(q[2], -1)        
+        days = st.slider("Select number of days", min_value=5, max_value=1000, value=100, step=5)
+        htmap(q[2], days)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
@@ -579,7 +584,7 @@ def save_uploaded_file(uploaded_file, save_directory, file_name):
     
     return file_path
 
-#@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
+@st.cache_data(show_spinner=True, ttl=86400)
 def get_files(names):
     Files = [row[0] for row in names]
     return Files
@@ -744,15 +749,6 @@ def home():
         with st.sidebar:
             st.button("Return to cards", on_click=click_button_return)
 
-
-
-# st.sidebar.title("Navigation")
-# option = st.sidebar.radio("Go to", ["Home", "CustomerPLBook Analysis"])
-
-# if option == "CustomerPLBook Analysis":
-#     CustomerPLBook()
-# else:
-#     home()
 
 tab_home, tab_customer = st.tabs(["Home", "CustomerPLBook Analysis"])
 with tab_home:

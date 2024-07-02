@@ -90,7 +90,7 @@ class StatergyAnalysis:
         self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
         self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
 
-    def yearlyVola(self, customerPLBook):
+    def yearlyVola(self, customerPLBook = None):
         if customerPLBook:
             equity = self.csv_data['equity_calculated']
         else:
