@@ -43,7 +43,7 @@ class merge_csv:
         self.drawdown_max = round(self.drawdown_column['drawdown'].min(), 2)
         self.drawdown_pct = round(self.drawdown_column['drawdown_pct'].min(), 2)
         self.Calmar_ratio = round(self.daily_combined_mean*np.sqrt(252) / self.drawdown_pct * -100, 2)
-        self.HIT = round((self.data1[16] + self.data2[16])/(len(self.data1[1])+ len(self.data2[1]))* 100, 2)
+        self.HIT = round((self.data1[47][4] + self.data2[47][4])/(len(self.data1[47][3])+ len(self.data2[47][3]))* 100, 2)
         self.long = self.data1[14] + self.data2[14]
         self.short = self.data1[13] +self.data2[13]
         self.avgNumTrades = round((len(self.data1[1])+ len(self.data2[1]))/(len(self.data1[2]) + len(self.data2[2])), 2)

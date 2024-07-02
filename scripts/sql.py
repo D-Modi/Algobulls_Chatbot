@@ -26,7 +26,7 @@ def calc(csv_name, is_dataframe=0, initial_inestent=150000, filename=None):
         stn = extract_text(csv_name)
         
     Analysis = StatergyAnalysis(csv_name, is_dataframe=is_dataframe, number=initial_inestent)
-    row= [stn, Analysis.csv_data, Analysis.daily_returnts, Analysis.monthly_returns, Analysis.weekly_returns, Analysis.weekday_returns, Analysis.yearly_returns, Analysis.drawdown_max, Analysis.drawdown_pct,Analysis.avgProfit(Analysis.csv_data, -1),Analysis.avgProfit(Analysis.csv_data, 1), Analysis.profit[0], Analysis.loss[0], Analysis.short, Analysis.long, Analysis.avgTrades(Analysis.daily_returnts), Analysis.num_wins, Analysis.num_loss(Analysis.csv_data, -1), Analysis.hit, Analysis.roi(), Analysis.profit_factor, Analysis.pos, Analysis.neg, Analysis.yearlyVola(),Analysis.max_consecutive(Analysis.csv_data, 1), Analysis.max_consecutive(Analysis.csv_data, -1), Analysis.annual_std, Analysis.annual_mean, Analysis.initial_investment, Analysis.risk_free_rate, Analysis.equity_PctChange]
+    row= [stn, Analysis.csv_data, Analysis.daily_returnts, Analysis.monthly_returns, Analysis.weekly_returns, Analysis.weekday_returns, Analysis.yearly_returns, Analysis.drawdown_max, Analysis.drawdown_pct,Analysis.avgProfit(Analysis.csv_data, -1),Analysis.avgProfit(Analysis.csv_data, 1), Analysis.profit[0], Analysis.loss[0], Analysis.short, Analysis.long, Analysis.avgTrades(Analysis.daily_returnts), Analysis.num_wins, Analysis.num_loss(Analysis.csv_data, -1), Analysis.Hit_Daywise, Analysis.roi(), Analysis.profit_factor, Analysis.pos, Analysis.neg, Analysis.yearlyVola(),Analysis.max_consecutive(Analysis.csv_data, 1), Analysis.max_consecutive(Analysis.csv_data, -1), Analysis.annual_std, Analysis.annual_mean, Analysis.initial_investment, Analysis.risk_free_rate, Analysis.equity_PctChange]
 
     #Win_Rate by Period
     d = [-21, -6, -213, -101, -59]
@@ -164,7 +164,7 @@ def run():
     conn = sqlite3.connect('strategy_analysis.db')
     cursor = conn.cursor()
 
-    #cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
+    cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
     # # # Create a table
     cursor.execute('''CREATE TABLE IF NOT EXISTS StrategyData (
         Id TEXT PRIMARY KEY,
@@ -236,4 +236,6 @@ def run():
     #Files = ["files/StrategyBacktestingPLBook-STAB679.csv"]
     for i in Files:
         insert_sql(i)
+        
+run() 
     

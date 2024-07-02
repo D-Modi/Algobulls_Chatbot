@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 from statistics import mean 
 
 class StatergyAnalysis:
@@ -27,13 +29,14 @@ class StatergyAnalysis:
         self.annual_mean = 0
         self.daily_annual_mean = 0
         self.daily_annual_std = 0
-        self.drawdown_max, self.drawdown_pct = self.drawdown(0)
-        self.daily_equity_Curve()
+        self.drawdown_max, self.drawdown_pct = self.drawdown(customerPLBook=customerPLBook)
+        self.daily_equity_Curve(customerPLBook=customerPLBook)
         self.num_wins = self.num_profit(self.csv_data)
         self.numTrades = len(self.csv_data)
         self.minProfits = []
         self.MaxProfits =[] 
         self.hit = round((self.num_wins/self.numTrades*100), 2)
+        self.Hit_Daywise = self.HIT_day()
         self.long = self.num_tradeType("long")
         self.short = self.num_tradeType("short")
         self.profit_factor, self.neg, self.pos = self.ProfitFactor()
@@ -90,7 +93,7 @@ class StatergyAnalysis:
         self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
         self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
 
-    def yearlyVola(self, customerPLBook):
+    def yearlyVola(self, customerPLBook=False):
         if customerPLBook:
             equity = self.csv_data['equity_calculated']
         else:
@@ -185,10 +188,19 @@ class StatergyAnalysis:
         else:
             return len(daily_returns) - len(wins)
         
-    def Treturns(self,t, returns=None):
+    def Treturns(self,t, year=0, month=0, day=0, returns=None):
         if returns is None:
             returns = self.daily_returnts
             
+        last_date = datetime.strptime(returns.index[-1], '%Y-%m-%d')
+        start_date = last_date - relativedelta(years=year, months=month, days=day)
+        
+        for i in returns.index:
+            date =  datetime.strptime(i, '%Y-%m-%d')
+            if date >= start_date:
+                start_date = date
+                break
+        new_date_str = start_date.strftime('%Y-%m-%d')
         cum_pnl = returns['cum_pnl'].tolist()
         cum_pnl = cum_pnl[-1*t:]
         ret = cum_pnl[-1] - cum_pnl[0]
@@ -314,6 +326,12 @@ class StatergyAnalysis:
     def HIT(self):
         return round((self.num_wins/self.numTrades*100), 2)
     
+    def HIT_day(self):
+        num_wins = self.num_loss(self.daily_returnts, 1)
+        return round(num_wins/len(self.daily_returnts)* 100, 2) 
+    
+    # def relative_date(self, year, month, days):
+    #     given_date = 
     def num_tradeType(self, quant):
         i = -1
         if quant == "short":
@@ -385,4 +403,11 @@ class StatergyAnalysis:
 
         fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
         return fig
+csv_path = ["/home/dhruvi/Algobulls_Chatbot/files/StrategyBacktestingPLBook-STAB553.csv"]
+#csv_path = ["files/StrategyBacktestingPLBook-STAB700.csv", "files/StrategyBacktestingPLBook-STAB679.csv", "files/StrategyBacktestingPLBook-STAB729.csv", "files/StrategyBacktestingPLBook-STAB736.csv"]
+for i in csv_path:
+    Analysis = StatergyAnalysis(i)
+    print(type(Analysis.daily_returnts.index[-1]))
+    print(Analysis.daily_returnts.index[-1])
+    print(i)
 #calmar ratio corret karna hai

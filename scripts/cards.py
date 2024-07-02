@@ -131,8 +131,21 @@ def daisply(daily_returns, period, csv):
     st.pyplot(freq_hist_py)
     
     with st.expander("More information"):
-        strings.extend([f"Number of trading {period}s", f"Number of Profitable {period}s", f"Number of Loss Making {period}s", f"Most Profitable {period}", f"Maximum Gains in a {period}", f"Least Profitable {period}", f"Maximum Loss in a {period}"])
-        values.extend([daily_returns[3], daily_returns[4], daily_returns[5], daily_returns[6][1], daily_returns[6][0], daily_returns[7][1], daily_returns[7][0]])
+        strings.extend([f"Number of trading {period}s",
+                        f"Number of Profitable {period}s",
+                        f"Number of Loss Making {period}s", 
+                        f"Most Profitable {period}", 
+                        f"Maximum Gains in a {period}",
+                        f"Least Profitable {period}", 
+                        f"Maximum Loss in a {period}"])
+        
+        values.extend([daily_returns[3], 
+                       daily_returns[4], 
+                       daily_returns[5], 
+                       daily_returns[6][1], 
+                       daily_returns[6][0],
+                       daily_returns[7][1], 
+                       daily_returns[7][0]])
 
         if period == "Day":
             strings.extend(["Max Win Streak", "Max Loss Streak"])
@@ -209,12 +222,12 @@ def get_data_using_path(csv_path):
 
 #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_analysis_obj(data, stn):
-    row = calc(data, i=1, filename=stn)
+    row = calc(data, is_dataframe=1, filename=stn)
     return row;        
 
 #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
-    Analysis = calc(data, i=1, initial_inestent=initial_investment, filename=stn)
+    Analysis = calc(data, is_dataframe=1, initial_inestent=initial_investment, filename=stn)
     return Analysis;    
 
 # #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
@@ -453,8 +466,8 @@ def next_page(q, stratergy, i):
                     q[25] = int.from_bytes(q[25], byteorder='little')
                 
                 strings = [
-                    "Average loss per losing trade: ",
-                    "Average gain per winning trade: ",
+                    "Average gain per losing trade: ",
+                    "Average loss per winning trade: ",
                     "Maximum Gains: ",
                     "Minimum Gains: ",
                     "Average Trades per Day: ",
@@ -627,7 +640,7 @@ def home():
                                 if st.button("Submit", key=f"append_{stratergy}"):
                                         if uploaded_file is not None:
                                             csv_data = pd.read_csv(uploaded_file)
-                                            append_sql(csv_data, i=1, filename=stratergy)
+                                            append_sql(csv_data, is_dataframe=1, filename=stratergy)
                                             st.rerun()    
 
                         with col4:
@@ -731,10 +744,8 @@ def home():
                                 if uploaded_file is not None and user_input is not None:
                                     file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
                                     data = pd.read_csv(uploaded_file)
-                                    insert_sql(data, 1, user_input)
+                                    insert_sql(data, is_dataframe=1, filename=user_input)
                                     st.rerun()
-
-
 
                     tile.write("\n")
                     break
@@ -743,8 +754,6 @@ def home():
         next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
         with st.sidebar:
             st.button("Return to cards", on_click=click_button_return)
-
-
 
 # st.sidebar.title("Navigation")
 # option = st.sidebar.radio("Go to", ["Home", "CustomerPLBook Analysis"])
