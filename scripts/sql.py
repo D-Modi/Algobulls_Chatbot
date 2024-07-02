@@ -26,22 +26,21 @@ def calc(csv_name, is_dataframe=0, initial_inestent=150000, filename=None):
         stn = extract_text(csv_name)
         
     Analysis = StatergyAnalysis(csv_name, is_dataframe=is_dataframe, number=initial_inestent)
-    row= [stn, Analysis.csv_data, Analysis.daily_returnts, Analysis.monthly_returns, Analysis.weekly_returns, Analysis.weekday_returns, Analysis.yearly_returns, Analysis.drawdown_max, Analysis.drawdown_pct,Analysis.avgProfit(Analysis.csv_data, -1),Analysis.avgProfit(Analysis.csv_data, 1), Analysis.profit[0], Analysis.loss[0], Analysis.short, Analysis.long, Analysis.avgTrades(Analysis.daily_returnts), Analysis.num_wins, Analysis.num_loss(Analysis.csv_data, -1), Analysis.Hit_Daywise, Analysis.roi(), Analysis.profit_factor, Analysis.pos, Analysis.neg, Analysis.yearlyVola(),Analysis.max_consecutive(Analysis.csv_data, 1), Analysis.max_consecutive(Analysis.csv_data, -1), Analysis.annual_std, Analysis.annual_mean, Analysis.initial_investment, Analysis.risk_free_rate, Analysis.equity_PctChange]
+    row= [stn, Analysis.csv_data, Analysis.daily_returnts, Analysis.monthly_returns, Analysis.weekly_returns, Analysis.weekday_returns, Analysis.yearly_returns, Analysis.drawdown_max, Analysis.drawdown_pct,Analysis.avgProfit(Analysis.csv_data, -1),Analysis.avgProfit(Analysis.csv_data, 1), Analysis.profit[0], Analysis.loss[0], Analysis.short, Analysis.long, Analysis.avgTrades(Analysis.daily_returnts), Analysis.num_wins, Analysis.num_loss(Analysis.csv_data, -1), Analysis.hit, Analysis.roi(), Analysis.profit_factor, Analysis.pos, Analysis.neg, Analysis.yearlyVola(),Analysis.max_consecutive(Analysis.csv_data, 1), Analysis.max_consecutive(Analysis.csv_data, -1), Analysis.annual_std, Analysis.annual_mean, Analysis.initial_investment, Analysis.risk_free_rate, Analysis.equity_PctChange]
 
     #Win_Rate by Period
-    d = [30, 7, 365, 180, 120]
+    d = [-21, -6, -213, -101, -59]
     for t in d:
-        start_date = Analysis.date_calc(day=t)
-        index_number = Analysis.daily_returnts.index.get_loc(start_date)
-        num_rows = len(Analysis.daily_returnts)-index_number
-        last_month_data = Analysis.daily_returnts.iloc[index_number:]
-    
-        row.append([Analysis.win_rate(last_month_data), num_rows])
+        if len(Analysis.daily_returnts) > -1*t:
+            last_month_data = Analysis.daily_returnts.iloc[t:]
+        else:
+            last_month_data = Analysis.daily_returnts
+        row.append(Analysis.win_rate(last_month_data))
     
     row.extend([Analysis.Sharpe(), Analysis.Calmar(), Analysis.Sortino()])
-    T = [3,30,14,180,365,730]
+    T = [4,22,11,101,252,504]
     for a in T:
-        row.append(Analysis.Treturns(day=a)[1])
+        row.append(Analysis.Treturns(a)[1])
         
     row.extend([Analysis.annual_mean, Analysis.annual_std])
 
@@ -75,7 +74,7 @@ def append_sql(csv_name, is_dataframe=0, filename=None):
     q = list(q)
     if q is not None:
         #Bytes to int
-        pick = [1,2,3,4,5,6,9,10,19,30,31,32,33,34,35,47,48,49,50,51]
+        pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
         for p in pick:
             q[p] = pickle.loads(q[p]) 
              
@@ -89,18 +88,14 @@ def append_sql(csv_name, is_dataframe=0, filename=None):
     
         d = [-21, -6, -213, -101, -59]
         for t in range(len(d)):
-            start_date = merged.daily_returns_combined.date_calc(day=d[t])
-            index_number = merged.daily_returns_combined.index.get_loc(start_date)
-            num_rows = len(merged.daily_returns_combined)-index_number
-            
-            amt = merged.winR(q[2], row[2], q[31 + t], row[31 + t], num_rows*-1)
-            row_combined.append([amt, num_rows])
+            amt = merged.winR(q[2], row[2], q[31 + t], row[31 + t], d[t])
+            row_combined.append(amt)
         
         row_combined.extend([merged.sharpe_ratio, merged.Calmar_ratio, merged.sortino_ratio])
     
-        T = [3,30,14,180,365,730]
+        T = [4,22,11,101,252,504]
         for a in T:
-            row_combined.append(merged.Treturns(day=a, returns=merged.daily_returns_combined)[1])
+            row_combined.append(merged.Treturns(a, merged.daily_returns_combined)[1])
         row_combined.extend([merged.combined_mean, merged.combined_variance])
     
         period = ['Day', 'Month', 'Week', 'WeekDay', 'Year']
@@ -137,7 +132,7 @@ def insert_sql(csv_name, is_dataframe=0, filename=None):
     print("&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&")
     row_pickled = calc(csv_name, is_dataframe=is_dataframe, filename=filename)   
      
-    pick = [1,2,3,4,5,6,9,10,19,30,31,32,33,34,35,47,48,49,50,51]
+    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
     for p in pick:
         row_pickled[p] = pickle.dumps(row_pickled[p])
         
@@ -169,7 +164,7 @@ def run():
     conn = sqlite3.connect('strategy_analysis.db')
     cursor = conn.cursor()
 
-    cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
+    #cursor.execute('''DROP TABLE IF EXISTS StrategyData''')
     # # # Create a table
     cursor.execute('''CREATE TABLE IF NOT EXISTS StrategyData (
         Id TEXT PRIMARY KEY,
@@ -241,6 +236,4 @@ def run():
     #Files = ["files/StrategyBacktestingPLBook-STAB679.csv"]
     for i in Files:
         insert_sql(i)
-        
-run() 
     

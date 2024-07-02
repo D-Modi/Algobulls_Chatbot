@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import streamlit as st
 import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
 from statistics import mean 
 
 class StatergyAnalysis:
@@ -29,14 +27,13 @@ class StatergyAnalysis:
         self.annual_mean = 0
         self.daily_annual_mean = 0
         self.daily_annual_std = 0
-        self.drawdown_max, self.drawdown_pct = self.drawdown(customerPLBook=customerPLBook)
-        self.daily_equity_Curve(customerPLBook=customerPLBook)
+        self.drawdown_max, self.drawdown_pct = self.drawdown(0)
+        self.daily_equity_Curve()
         self.num_wins = self.num_profit(self.csv_data)
         self.numTrades = len(self.csv_data)
         self.minProfits = []
         self.MaxProfits =[] 
         self.hit = round((self.num_wins/self.numTrades*100), 2)
-        self.Hit_Daywise = self.HIT_day()
         self.long = self.num_tradeType("long")
         self.short = self.num_tradeType("short")
         self.profit_factor, self.neg, self.pos = self.ProfitFactor()
@@ -69,14 +66,13 @@ class StatergyAnalysis:
         if 'Day' not in data.columns:
             data['date'] = pd.to_datetime(data['entry_timestamp'])
             data = data.sort_values(by='date')
-            data = data.reset_index()
             data = data.drop(columns=['entry_timestamp'])
 
             data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
             data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
             data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
             data['Year'] = pd.to_datetime(data.date,format = '%Y-%m')
-            data['weekday'] = pd.to_datetime(data.date,format = '%a')
+            data['weekday'] = pd.to_datetime(data.date,format = '%a')\
             
             data['Day'] = data['Day'].dt.strftime('%Y-%m-%d')
             data['Week'] = data['Week'].dt.strftime('%Y-%U')
@@ -94,7 +90,7 @@ class StatergyAnalysis:
         self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
         self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
 
-    def yearlyVola(self, customerPLBook=False):
+    def yearlyVola(self, customerPLBook = None):
         if customerPLBook:
             equity = self.csv_data['equity_calculated']
         else:
@@ -183,41 +179,20 @@ class StatergyAnalysis:
     
 #Another Useless function
     def winCount(self, daily_returns, i):
-        wins = daily_returns[daily_returns['pnl_absolute']>0]
-        loss = daily_returns[daily_returns['pnl_absolute']<0]
-        
+        wins = daily_returns[daily_returns['pnl_absolute']>=0]
         if i >0:
             return len(wins)
         else:
-            
-            return len(loss)
-    
-    def date_calc(self, day=0, returns=None):
-        if returns is None:
-            returns = self.daily_returnts
-            
-        last_date = datetime.strptime(returns.index[-1], '%Y-%m-%d')
-        start_date = last_date - relativedelta(days=day)
-        for i in returns.index:
-            date =  datetime.strptime(i, '%Y-%m-%d')
-            if date >= start_date:
-                start_date = date
-                break
-        new_date_str = start_date.strftime('%Y-%m-%d')
-        index_number = returns.index.get_loc(new_date_str)
-        ind = returns['cum_pnl'].iloc[-(len(returns)-index_number)]
-        return new_date_str
+            return len(daily_returns) - len(wins)
         
-    def Treturns(self, day=0, returns=None):
+    def Treturns(self,t, returns=None):
         if returns is None:
             returns = self.daily_returnts
             
-        new_date_str = self.date_calc(day=day, returns=returns)
-        final_equity_value = returns['cum_pnl'].iloc[-1]
-        start_equity_value = returns.loc[new_date_str, 'cum_pnl']
-        gain = final_equity_value - start_equity_value
-        return gain, round(gain*100/self.initial_investment, 2)
-
+        cum_pnl = returns['cum_pnl'].tolist()
+        cum_pnl = cum_pnl[-1*t:]
+        ret = cum_pnl[-1] - cum_pnl[0]
+        return ret, round(ret*100/self.initial_investment, 2)
 
     def avgReturns(self, daily_returns):
         daily_returns['returns'] = daily_returns['cum_pnl']/self.initial_investment *100
@@ -266,7 +241,7 @@ class StatergyAnalysis:
         if i == -1:
             return sum(returns['pnl_absolute'] < 0)
         else:
-            return sum(returns['pnl_absolute'] >0)
+            return sum(returns['pnl_absolute'] >=0)
         
 # try to remove this function
     def trading_num(self, returns):
@@ -305,6 +280,7 @@ class StatergyAnalysis:
         profit = np.zeros(12)
         for r in retrurn:
             val = int(r // 1000 + 6)
+            #print(val)
             if val < 0:
                 val = 0
             if val> 11:
@@ -338,12 +314,6 @@ class StatergyAnalysis:
     def HIT(self):
         return round((self.num_wins/self.numTrades*100), 2)
     
-    def HIT_day(self):
-        num_wins = self.num_loss(self.daily_returnts, 1)
-        return round(num_wins/len(self.daily_returnts)* 100, 2) 
-    
-    # def relative_date(self, year, month, days):
-    #     given_date = 
     def num_tradeType(self, quant):
         i = -1
         if quant == "short":
@@ -415,4 +385,4 @@ class StatergyAnalysis:
 
         fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
         return fig
-
+#calmar ratio corret karna hai
