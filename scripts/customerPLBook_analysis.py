@@ -66,17 +66,17 @@ class customerPLBook_Analysis:
         st.subheader("Equity Curve")
         st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
         if self.three_days:
-            st.write(f"Returns for the ***last 3 Days***: {Analysis.Treturns(4)[1]}%")
+            st.write(f"Returns for the ***last 3 Days***: {Analysis.Treturns(day=3)[1]}%")
         if self.thirty_days:
-            st.write(f"Returns for the ***last 30 Days***: {Analysis.Treturns(22)[1]}%")
+            st.write(f"Returns for the ***last 30 Days***: {Analysis.Treturns(day=30)[1]}%")
         if self.two_week:
-            st.write(f"Returns for the ***last 2 Weeks***: {Analysis.Treturns(11)[1]}%")
+            st.write(f"Returns for the ***last 2 Weeks***: {Analysis.Treturns(day=14)[1]}%")
         if self.six_months:
-            st.write(f"Returns for the ***last 6 Months***: {Analysis.Treturns(127)[1]}%")
+            st.write(f"Returns for the ***last 6 Months***: {Analysis.Treturns(day=180)[1]}%")
         if self.one_year:
-            st.write(f"Returns for the ***last 1 Year***: {Analysis.Treturns(253)[1]}%")
+            st.write(f"Returns for the ***last 1 Year***: {Analysis.Treturns(day=365)[1]}%")
         if self.Two_years:
-            st.write(f"Returns for the ***last 2 Years***: {Analysis.Treturns(505)[1]}%")
+            st.write(f"Returns for the ***last 2 Years***: {Analysis.Treturns(day=730)[1]}%")
 
         if self.Daily:
             self.daisply(daily_returns, "Day", Analysis)

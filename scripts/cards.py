@@ -21,18 +21,18 @@ st.set_page_config(layout="wide")
 
 if 'clicked' not in st.session_state:
     st.session_state.clicked = False 
-if 'ana' not in st.session_state:
-    st.session_state['ana'] = None
-if 'stra' not in st.session_state:
-    st.session_state['stra'] = None
+if 'sql_data' not in st.session_state:
+    st.session_state['sql_data'] = None
+if 'strategy_code' not in st.session_state:
+    st.session_state['strategy_code'] = None
 if 'button' not in st.session_state:
     st.session_state.button = False 
 if 'Time' not in st.session_state:
     st.session_state['Time'] = None
-if 'rt' not in st.session_state:
-    st.session_state['rt'] = None
-if 'i' not in st.session_state:
-    st.session_state['i'] = None   
+if 'analysis_row' not in st.session_state:
+    st.session_state['analysis_row'] = None
+if 'periodwise_df' not in st.session_state:
+    st.session_state['periodwise_df'] = None   
 if 'index' not in st.session_state:
     st.session_state['index'] = None 
     
@@ -46,13 +46,13 @@ def click_button_return():
 def click_button_disp(s, r, i):
     st.session_state.button = True
     st.session_state['Time'] = s
-    st.session_state['rt'] = r
-    st.session_state['i'] = i
+    st.session_state['analysis_row'] = r
+    st.session_state['periodwise_df'] = i
 
 def click_button_arg(a,b,c):
     st.session_state.clicked = not st.session_state.clicked
-    st.session_state['ana'] = a
-    st.session_state['stra'] = b
+    st.session_state['sql_data'] = a
+    st.session_state['strategy_code'] = b
     st.session_state['index'] = c
 
 def get_image_base64(image_path):
@@ -165,12 +165,12 @@ def daisply(daily_returns, period, csv):
         st.subheader("Cumulative Profit and loss")
         st.line_chart(csv, y=['cum_pnl'])
  
-def display(weekday_returns, q):
+def display(weekday_returns, csv_data):
     st.subheader(f"Profit/Loss Data per Day of Week")
-    st.bar_chart(q[5], y=['pnl_absolute'] )
+    st.bar_chart(csv_data, y=['pnl_absolute'] )
     st.write(f"***Most Profitable Day*** of the week: {weekday_returns[0][1]}")
     st.write(f"***Least Profitable Day*** of the week: {weekday_returns[1][1]}")
-    table_data = q[5]['pnl_absolute']
+    table_data = csv_data['pnl_absolute']
     st.table(table_data)
 
 #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
@@ -179,12 +179,8 @@ def daily_returns_hist(daily_returns):
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
         ax1.set_xticks([])
         ax1.set_yticks([])
-
-        fig2, ax2 = plt.subplots(figsize=(10, 5))  
-        ax2.bar(daily_returns.index, daily_returns['cum_pnl'])
-        ax2.set_xticklabels([])
         
-        return fig1, fig2
+        return fig1
 
 
 #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
@@ -233,16 +229,21 @@ def get_analysis_with_initial_invest(data, initial_investment, stn):
 # #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)       
 def next_page(q, stratergy, i):
     
-    data = q[1]
-    print(data.columns)
+    directory_name = f"files/{stratergy}"
+    daily_returns_loaded = pd.read_pickle(f"{directory_name}/daily_returns.pkl")
+    monthly_returns_loaded = pd.read_pickle(f"{directory_name}/monthly_returns.pkl")
+    yearly_returns_loaded = pd.read_pickle(f"{directory_name}/yearly_returns.pkl")
+    weekly_returns_loaded = pd.read_pickle(f"{directory_name}/weekly_returns.pkl")
+    weekday_returns_loaded = pd.read_pickle(f"{directory_name}/weekday_returns.pkl")
+    data = pd.read_pickle(f"{directory_name}/StrategyBacktestingPLBook-{stratergy}.pkl")
+    
     row = list(data.iloc[0])
-    entry_data_col_index = "entry_timestamp";
+    entry_data_col_index = "date"
     for j in range(len(row)):
         tempstr = str(row[j]).split(" ")
         if is_valid_datetime(tempstr[0]):
             entry_data_col_index = data.columns[j]
             break;
-    data = data.sort_values(by=entry_data_col_index)
     try:
         date_format = "%Y-%m-%d"
         startdate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[0].split(" ")[0], date_format)
@@ -393,32 +394,32 @@ def next_page(q, stratergy, i):
         
         with bt5:
             st.subheader("Drawdown Curve")
-            st.line_chart(q[1], y='drawdown_percentage', x='Day')
+            st.line_chart(data, y='drawdown_percentage', x='Day')
             st.write(f"***Max Drawdown***: {q[7]}")
             st.write(f"***Maximum Drawdowm percentage***: {q[8]}")
             
         with bt4:
             st.subheader("Equity Curve")
-            st.line_chart(q[1], y='equity_curve')
+            st.line_chart(data, y='equity_curve')
             
         with bt3:
             st.subheader("ROI% Curve")
-            st.line_chart( q[2], y='roi' )
+            st.line_chart( daily_returns_loaded, y='roi' )
             st.write(f"***ROI***: {q[19][0]}")
             st.write(f"***ROI %***: {q[19][1]}%")
             
             st.subheader("Monthly Returns and ROI% Over Time")
             fig, ax1 = plt.subplots()
 
-            ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
+            ax1.bar(monthly_returns_loaded.index.values, monthly_returns_loaded['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
             ax1.set_xlabel('Month')
             ax1.set_ylabel('Monthly Returns', color='b')
             ax1.tick_params(axis='y', labelcolor='b')
-            ax1.set_xticks(q[3].index[::3])
-            ax1.set_xticklabels(q[3].index[::3], rotation=90)
+            ax1.set_xticks(monthly_returns_loaded.index[::3])
+            ax1.set_xticklabels(monthly_returns_loaded.index[::3], rotation=90)
             
             ax2 = ax1.twinx()
-            ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
+            ax2.plot(monthly_returns_loaded.index.values, monthly_returns_loaded['roi'].values, color='r', marker='o', label='ROI%')
             ax2.set_ylabel('ROI%', color='r')
             ax2.tick_params(axis='y', labelcolor='r')
             fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
@@ -426,9 +427,9 @@ def next_page(q, stratergy, i):
             
         with bt2:
             st.subheader("Daily P&L")
-            st.bar_chart(q[2], y=['pnl_absolute'])
+            st.bar_chart(daily_returns_loaded, y=['pnl_absolute'])
             st.subheader("Cumulative P&L")
-            st.line_chart(q[2], y=['cum_pnl'])
+            st.line_chart(daily_returns_loaded, y=['cum_pnl'])
             
         with bt1:
             week = q[32][0]
@@ -561,36 +562,24 @@ def next_page(q, stratergy, i):
  
     with tab1:
         st.subheader("All Time Heatmap")
-        htmap(q[2], 90)        
+        htmap(daily_returns_loaded, 90)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
-            a = st.button("Daily", use_container_width=True, on_click=click_button_disp, args=["Day", q[47], q[2]])
+            a = st.button("Daily", use_container_width=True, on_click=click_button_disp, args=["Day", q[2], daily_returns_loaded])
         with co4:
-            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Month", q[48], q[3]])
+            a = st.button("Monthly", use_container_width=True, on_click=click_button_disp, args=["Month", q[3], monthly_returns_loaded])
         with co3:
-            a = st.button("Weekly", use_container_width=True, on_click=click_button_disp, args=["Week", q[49], q[4]])
+            a = st.button("Weekly", use_container_width=True, on_click=click_button_disp, args=["Week", q[4], weekly_returns_loaded])
         with co5:
-            a = st.button("Yearly", use_container_width=True, on_click=click_button_disp, args=["Year", q[51], q[6]])
+            a = st.button("Yearly", use_container_width=True, on_click=click_button_disp, args=["Year", q[6], yearly_returns_loaded])
         with co6:
-            a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay",q[50],q[5]])          
+            a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay",q[5], weekday_returns_loaded])          
         if st.session_state.button:
             if st.session_state["Time"] != "WeekDay":
-                daisply(st.session_state['rt'], st.session_state["Time"], st.session_state['i'])
+                daisply(st.session_state['analysis_row'], st.session_state["Time"], st.session_state['periodwise_df'])
             else:
-                display(q[50], q)
-
-def save_uploaded_file(uploaded_file, save_directory, file_name):
-    # Create the save directory if it does not exist
-    if not os.path.exists(save_directory):
-        os.makedirs(save_directory)
-    
-    # Save the uploaded file to the specified directory
-    file_path = os.path.join(save_directory, file_name)
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    return file_path
+                display(st.session_state['analysis_row'], st.session_state['periodwise_df'])
 
 #@st.cache_data(experimental_allow_widgets=True, show_spinner=False, ttl=3600)
 def get_files(names):
@@ -627,6 +616,10 @@ def home():
             for col in rows:
                 if i < len(Files):
                     stratergy = Files[i]
+                    directory_name = f"files/{stratergy}"
+                    monthly_returns_loaded = pd.read_pickle(f"{directory_name}/monthly_returns.pkl")
+                    data = pd.read_pickle(f"{directory_name}/StrategyBacktestingPLBook-{stratergy}.pkl")
+                    
                     tile = col.container(height=410, border=True)
                     with tile:
                         col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
@@ -656,12 +649,11 @@ def home():
                     cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
                     q  = cursor.fetchone()
 
-                    pick = [1,2,3,4,5,6,9,10,19,30,31,32,33,34,35,47,48,49,50,51]
+                    pick = [2,3,4,5,6,9,10,19,30,31,32,33,34,35]
                     q = list(q)
                     for p in pick: 
                         q[p] = pickle.loads(q[p])
-
-                    data = q[1]
+                        
                     custom_aligned_text = f"""
                     <div style="display: flex; justify-content: space-between;">
                     <span style="text-align: left;">{stratergy}</span>
@@ -676,7 +668,7 @@ def home():
                     """
                     tile.write(custom_aligned_text, unsafe_allow_html=True)
                     tile.markdown(mark, unsafe_allow_html=True)
-                    pnl, cum_pnl = daily_returns_hist(q[3])
+                    pnl = daily_returns_hist(monthly_returns_loaded)
                     tile.pyplot(pnl)
 
                     ratios = f"""
@@ -751,17 +743,9 @@ def home():
                     break
 
     if st.session_state.clicked:
-        next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
+        next_page(st.session_state['sql_data'], st.session_state['strategy_code'], st.session_state['index'])
         with st.sidebar:
             st.button("Return to cards", on_click=click_button_return)
-
-# st.sidebar.title("Navigation")
-# option = st.sidebar.radio("Go to", ["Home", "CustomerPLBook Analysis"])
-
-# if option == "CustomerPLBook Analysis":
-#     CustomerPLBook()
-# else:
-#     home()
 
 tab_home, tab_customer = st.tabs(["Home", "CustomerPLBook Analysis"])
 with tab_home:

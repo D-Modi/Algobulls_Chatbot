@@ -40,12 +40,12 @@ class merge_csv:
         self.equity_PctChange = pd.concat([self.equity_PctChange, pd.Series([transition_equity_change])], ignore_index=True)
         self.equity_PctChange = pd.concat([self.equity_PctChange, self.data2[30]], ignore_index=True)
         self.sortino_ratio = self.Sortino_Ratio()
-        self.drawdown_data2(max_eq=self.data1_csv['cum_max'].iloc[-1])
+        self.drawdown_data2(max_eq=self.data1_csv['equity_cum_max'].iloc[-1])
         self.drawdown_column = pd.concat([self.data1_csv[['drawdown', 'drawdown_pct']], self.data2_csv[['drawdown', 'drawdown_pct']]])
         self.drawdown_max = round(self.drawdown_column['drawdown'].min(), 2)
         self.drawdown_pct = round(self.drawdown_column['drawdown_pct'].min(), 2)
         self.Calmar_ratio = round(self.daily_combined_mean*np.sqrt(252) / self.drawdown_pct * -100, 2)
-        self.HIT = round((self.data1[47][4] + self.data2[47][4])/(len(self.data1[47][3])+ len(self.data2[47][3]))* 100, 2)
+        self.HIT = round((self.data1[47][4] + self.data2[47][4])/(self.data1[47][3]+ self.data2[47][3])* 100, 2)
         self.long = self.data1[14] + self.data2[14]
         self.short = self.data1[13] +self.data2[13]
         self.avgNumTrades = round((len(self.data1[1])+ len(self.data2[1]))/(len(self.data1[2]) + len(self.data2[2])), 2)
@@ -177,11 +177,11 @@ class merge_csv:
         new_date_str = start_date.strftime('%Y-%m-%d')
         return new_date_str
         
-    def Treturns(self, day=0, returns=None):
+    def Treturns(self, days, returns=None):
         if returns is None:
             returns = self.daily_returns_combined
             
-        new_date_str = self.date_calc(day=day, returns=returns)
+        new_date_str = self.date_calc(day=days, returns=returns)
         print(new_date_str)
         final_equity_value = returns['cum_pnl'].iloc[-1]
         start_equity_value = returns.loc[new_date_str, 'cum_pnl']
@@ -347,8 +347,9 @@ class merge_csv:
         return  max(r1, r2, total_positive_rows)
     
     def winR(self, df1, df2, r1, r2, d):
-        if len(df2)>d*-1:
-            return r2
+        print(len(df2), d)
+        if len(df2)>=d*-1:
+            return r2[0]
         rem = d*-1 - len(df2)
         index_pos = -1*r1[1] + len(df1)
         if rem < r1[1]:

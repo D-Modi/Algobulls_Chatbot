@@ -68,7 +68,10 @@ class StatergyAnalysis:
         data = data.dropna(subset=['pnl_absolute'])
         if 'Day' not in data.columns:
             data['date'] = pd.to_datetime(data['entry_timestamp'])
-            data = data.sort_values(by='date')
+            start = data['date'].iloc[0]
+            end = data['date'].iloc[-1]
+            if start > end:
+                data = data.iloc[::-1].reset_index(drop=True)    
             data = data.reset_index()
             data = data.drop(columns=['entry_timestamp'])
 
