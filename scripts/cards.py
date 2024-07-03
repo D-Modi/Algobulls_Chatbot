@@ -632,7 +632,7 @@ def home():
                                 if st.button("Submit", key=f"append_{stratergy}"):
                                         if uploaded_file is not None:
                                             csv_data = pd.read_csv(uploaded_file)
-                                            append_sql(csv_data, i=1, filename=stratergy)
+                                            append_sql(csv_data, is_dataframe=1, filename=stratergy)
                                             st.rerun()    
 
                         with col4:
