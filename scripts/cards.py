@@ -1,17 +1,16 @@
 
 import streamlit as st
 import matplotlib.pyplot as plt  
-from stratrgy_analysis import StatergyAnalysis
 import pandas as pd
 import numpy as np
 import base64
-import sqlite3
-import pickle
+import re
+import glob
 import seaborn as sn
 from  matplotlib.colors import LinearSegmentedColormap
 from datetime import datetime
 import os
-from sql import insert_sql, delete_id, calc, append_sql
+from calculations import calc
 import warnings
 from customerPLBook_analysis import customerPLBook_Analysis
 
@@ -35,6 +34,8 @@ if 'i' not in st.session_state:
     st.session_state['i'] = None   
 if 'index' not in st.session_state:
     st.session_state['index'] = None 
+if 'warning_message' not in st.session_state:
+    st.session_state.warning_message = ""
     
 def click_button():
     st.session_state.clicked = not st.session_state.clicked
@@ -51,16 +52,17 @@ def click_button_disp(s, r, i):
 
 def click_button_arg(a,b,c):
     st.session_state.clicked = not st.session_state.clicked
+    st.session_state.warning_message = ""
     st.session_state['ana'] = a
     st.session_state['stra'] = b
     st.session_state['index'] = c
 
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def htmap(data, days):
     data = np.array(data['pnl_absolute'].tolist())
     data = data[-1 * days:]
@@ -95,7 +97,7 @@ def htmap(data, days):
     '''
     container.write(html_code, unsafe_allow_html=True)
 
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def freq_hist(profit, num):
     num.insert(0, "")  
     num.append("")  
@@ -117,7 +119,7 @@ def freq_hist(profit, num):
 
     return fig
 
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def daisply(daily_returns, period, csv):
     strings = []
     values = []
@@ -156,7 +158,7 @@ def daisply(daily_returns, period, csv):
         st.subheader("Cumulative Profit and loss")
         st.line_chart(csv, y=['cum_pnl'])
  
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def display(weekday_returns, q):
     st.subheader(f"Profit/Loss Data per Day of Week")
     st.bar_chart(q[5], y=['pnl_absolute'] )
@@ -165,7 +167,7 @@ def display(weekday_returns, q):
     table_data = q[5]['pnl_absolute']
     st.table(table_data)
 
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def daily_returns_hist(daily_returns):
         fig1, ax1 = plt.subplots(figsize=(10, 2))  
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
@@ -179,7 +181,7 @@ def daily_returns_hist(daily_returns):
         return fig1, fig2
 
 
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def is_valid_datetime(input_str):
     try:
         datetime.strptime(input_str, "%Y-%m-%d")
@@ -191,7 +193,7 @@ def is_valid_datetime(input_str):
         except ValueError:
             return False
         
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])
@@ -199,7 +201,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] >= target_date_str:
             return i
 
-@st.cache_data(show_spinner=True, ttl=86400)     
+@st.cache_data(show_spinner=False, ttl=86400)     
 def exit_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])[::-1]
@@ -207,25 +209,25 @@ def exit_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] <= target_date_str:
             return len(date_col)-i-1;
 
-@st.cache_data(show_spinner=True, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def get_data_using_path(csv_path):
     data = pd.read_csv(csv_path)
     return data;
 
-@st.cache_data(show_spinner=True, ttl=86400)
+@st.cache_data(show_spinner=False, ttl=86400)
 def get_analysis_obj(data, stn):
     row = calc(data, is_dataframe=1, filename=stn)
     return row;        
 
-@st.cache_data(show_spinner=True, ttl=86400)     
+@st.cache_data(show_spinner=False, ttl=86400)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
-    Analysis = calc(data, is_dataframe=1, initial_inestent=initial_investment, filename=stn)
+    Analysis = calc(data, is_dataframe=1, initial_investment=initial_investment, filename=stn)
     return Analysis;    
 
 def next_page(q, stratergy, i):
     
+    st.write("\n")
     data = q[1]
-    print(data.columns)
     row = list(data.iloc[0])
     entry_data_col_index = "entry_timestamp";
     for j in range(len(row)):
@@ -551,9 +553,8 @@ def next_page(q, stratergy, i):
             #plt.tight_layout()  # Adjust layout to prevent overlapping labels
  
     with tab1:
-        st.subheader("All Time Heatmap")
-        days = st.slider("Select number of days", min_value=5, max_value=1000, value=100, step=5)
-        htmap(q[2], days)        
+        st.subheader("Heatmap")
+        htmap(q[2], 180)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
@@ -584,9 +585,14 @@ def save_uploaded_file(uploaded_file, save_directory, file_name):
     
     return file_path
 
-@st.cache_data(show_spinner=True, ttl=86400)
-def get_files(names):
-    Files = [row[0] for row in names]
+def get_files():
+    path = "files/StrategyBacktestingPLBook-*.csv"
+    Files = []
+
+    for file in glob.glob(path, recursive=True):
+        found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
+        Files.append(found)
+    
     return Files
         
 def CustomerPLBook():
@@ -594,12 +600,11 @@ def CustomerPLBook():
     customerPLBook_analysis_streamlit.run()
 
 def home():
+    if st.session_state.warning_message:
+        st.warning(st.session_state.warning_message)
     if not st.session_state.clicked:
-        conn = sqlite3.connect('strategy_analysis.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT Id FROM StrategyData ')
-        names  = cursor.fetchall()
-        Files = get_files(names)
+
+        Files = get_files()
         
         num_file = len(Files)+1
         num_row = num_file//3
@@ -620,6 +625,7 @@ def home():
                 if i < len(Files):
                     stratergy = Files[i]
                     tile = col.container(height=410, border=True)
+                    csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
                     with tile:
                         col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
 
@@ -632,26 +638,27 @@ def home():
                                 if st.button("Submit", key=f"append_{stratergy}"):
                                         if uploaded_file is not None:
                                             csv_data = pd.read_csv(uploaded_file)
-                                            append_sql(csv_data, i=1, filename=stratergy)
-                                            st.rerun()    
+                                            original_data = pd.read_csv(csv_path)
+                                            try:
+                                                result = pd.concat([original_data, csv_data], ignore_index=True)
+                                                result.to_csv(csv_path)
+
+                                            except:
+                                                st.session_state.warning_message = "**Error:** Columns of new csv don't match with previous one"
+                                            st.rerun() 
+
 
                         with col4:
                             delete_button = st.button("Delete", key=f"delete{i}")
                             if delete_button:
-                                delete_id(Files[i])
+                                os.remove(csv_path)
                                 st.rerun()
                     
                     # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
-                    # data = get_data_using_path(csv_path)
-                    # Analysis = get_analysis_obj(data)
+                    
+                    data = get_data_using_path(csv_path)
+                    q = get_analysis_obj(data, stratergy)
                     i += 1
-                    cursor.execute('SELECT * FROM StrategyData WHERE Id = ?', (stratergy,))
-                    q  = cursor.fetchone()
-
-                    pick = [1,2,3,4,5,6,9,10,19,30,47,48,49,50,51]
-                    q = list(q)
-                    for p in pick: 
-                        q[p] = pickle.loads(q[p])
 
                     data = q[1]
                     custom_aligned_text = f"""
@@ -730,13 +737,23 @@ def home():
                     
                     with tile:
                         uploaded_file = st.file_uploader("", type="csv")
+
+                        if uploaded_file is not None and user_input != '':
+                            # save_directory = "files"
+                            file_name = f"files/StrategyBacktestingPLBook-{user_input}.csv"
+                            # file_path = save_uploaded_file(uploaded_file, save_directory, file_name)
+                            inserted_data = pd.read_csv(uploaded_file)
+                            inserted_data.to_csv(file_name)
+                        
+                    with tile:
                         col1, col2 = st.columns([0.37, 0.63]) 
+
+                        with col1:
+                            tile.write("") 
+
                         with col2:
                             if st.button("Submit"):
                                 if uploaded_file is not None and user_input is not None:
-                                    file_name = f"StrategyBacktestingPLBook-{user_input}.csv"
-                                    data = pd.read_csv(uploaded_file)
-                                    insert_sql(data, 1, user_input)
                                     st.rerun()
 
 
@@ -748,6 +765,7 @@ def home():
         next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
         with st.sidebar:
             st.button("Return to cards", on_click=click_button_return)
+
 
 
 tab_home, tab_customer = st.tabs(["Home", "CustomerPLBook Analysis"])
