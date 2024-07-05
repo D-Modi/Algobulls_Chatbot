@@ -554,7 +554,7 @@ def next_page(q, stratergy, i):
  
     with tab1:
         st.subheader("Heatmap")
-        htmap(q[2], 180)        
+        htmap(q[2], 270)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
