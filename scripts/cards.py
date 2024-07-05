@@ -228,6 +228,7 @@ def next_page(q, stratergy, i):
     
     st.write("\n")
     data = q[1]
+    print(data.columns)
     row = list(data.iloc[0])
     entry_data_col_index = "entry_timestamp";
     for j in range(len(row)):
@@ -235,6 +236,7 @@ def next_page(q, stratergy, i):
         if is_valid_datetime(tempstr[0]):
             entry_data_col_index = data.columns[j]
             break;
+    
     data = data.sort_values(by=entry_data_col_index)
     try:
         date_format = "%Y-%m-%d"
@@ -554,7 +556,7 @@ def next_page(q, stratergy, i):
  
     with tab1:
         st.subheader("Heatmap")
-        htmap(q[2], 270)        
+        htmap(q[2], 90)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
