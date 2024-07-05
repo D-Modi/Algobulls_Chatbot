@@ -636,15 +636,22 @@ def home():
                             with st.popover("Append Data"):
                                 uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")        
                                 if st.button("Submit", key=f"append_{stratergy}"):
+                                        st.session_state.warning_message = ""
                                         if uploaded_file is not None:
                                             csv_data = pd.read_csv(uploaded_file)
                                             original_data = pd.read_csv(csv_path)
                                             try:
+                                                csv_data = csv_data[original_data.columns]
                                                 result = pd.concat([original_data, csv_data], ignore_index=True)
                                                 result.to_csv(csv_path)
 
                                             except:
-                                                st.session_state.warning_message = "**Error:** Columns of new csv don't match with previous one"
+                                                try:
+                                                    original_data = original_data[csv_data.columns]
+                                                    result = pd.concat([original_data, csv_data], ignore_index=True)
+                                                    result.to_csv(csv_path)
+                                                except:
+                                                    st.session_state.warning_message = "**Error:** Columns of new csv don't match with previous one"
                                             st.rerun() 
 
 
