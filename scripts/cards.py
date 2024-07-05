@@ -71,7 +71,7 @@ def htmap(data, days):
     data = np.reshape(data, (5, -1))
     line_width = 0.8
     linecolor = "White"
-    box_width = int(m * 2 / 25) + 2
+    box_width = int(m * 4 / 25) + 2
 
     c = ["darkred", "red", "lightcoral", "white", "palegreen", "green", "darkgreen"]
     v = [0, .15, .4, .5, 0.6, .9, 1.]
