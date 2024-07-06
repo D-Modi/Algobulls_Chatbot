@@ -10,30 +10,31 @@ def extract_text(filename):
     return filename
 
 #Calculates and saves all the necessary data requiired in an array 
-def calc(csv_name, is_dataframe=0, initial_investment=150000, filename=None):
+def calc(csv_name, is_dataframe=0, initial_inestent=150000, filename=None, save_data = False):
     
     #filename is not None when we pass a dataframe instead of  a csv file
     if filename is not None:
-        stn = extract_text(filename)
+        strategy_code = extract_text(filename)
     else:
-        stn = extract_text(csv_name)
+        strategy_code = extract_text(csv_name)
         
-    Analysis = StatergyAnalysis(csv_name, is_dataframe=is_dataframe, number=initial_investment)
-    row= [stn, Analysis.csv_data, Analysis.daily_returnts, Analysis.monthly_returns, Analysis.weekly_returns, Analysis.weekday_returns, Analysis.yearly_returns, Analysis.drawdown_max, Analysis.drawdown_pct,Analysis.avgProfit(Analysis.csv_data, -1),Analysis.avgProfit(Analysis.csv_data, 1), Analysis.profit[0], Analysis.loss[0], Analysis.short, Analysis.long, Analysis.avgTrades(Analysis.daily_returnts), Analysis.num_wins, Analysis.num_loss(Analysis.csv_data, -1), Analysis.hit, Analysis.roi(), Analysis.profit_factor, Analysis.pos, Analysis.neg, Analysis.yearlyVola(),Analysis.max_consecutive(Analysis.csv_data, 1), Analysis.max_consecutive(Analysis.csv_data, -1), Analysis.annual_std, Analysis.annual_mean, Analysis.initial_investment, Analysis.risk_free_rate, Analysis.equity_PctChange]
-
+    Analysis = StatergyAnalysis(csv_name, is_dataframe=is_dataframe, number=initial_inestent)
+    row= [strategy_code, Analysis.csv_data, Analysis.daily_returnts, Analysis.monthly_returns, Analysis.weekly_returns, Analysis.weekday_returns, Analysis.yearly_returns, Analysis.drawdown_max, Analysis.drawdown_pct,Analysis.avgProfit(Analysis.csv_data, -1),Analysis.avgProfit(Analysis.csv_data, 1), Analysis.profit[0], Analysis.loss[0], Analysis.short, Analysis.long, Analysis.avgTrades(Analysis.daily_returnts), Analysis.num_wins, Analysis.num_loss(Analysis.csv_data, -1), Analysis.Hit_Daywise, Analysis.roi(), Analysis.profit_factor, Analysis.pos, Analysis.neg, Analysis.yearlyVola(),Analysis.max_consecutive(Analysis.csv_data, 1), Analysis.max_consecutive(Analysis.csv_data, -1), Analysis.annual_std, Analysis.annual_mean, Analysis.initial_investment, Analysis.risk_free_rate, Analysis.equity_PctChange]
+    
     #Win_Rate by Period
-    d = [-21, -6, -213, -101, -59]
+    d = [30, 7, 365, 180, 120]
     for t in d:
-        if len(Analysis.daily_returnts) > -1*t:
-            last_month_data = Analysis.daily_returnts.iloc[t:]
-        else:
-            last_month_data = Analysis.daily_returnts
-        row.append(Analysis.win_rate(last_month_data))
+        start_date = Analysis.date_calc(day=t)
+        index_number = Analysis.daily_returnts.index.get_loc(start_date)
+        num_rows = len(Analysis.daily_returnts)-index_number
+        last_month_data = Analysis.daily_returnts.iloc[index_number:]
+    
+        row.append([Analysis.win_rate(last_month_data), num_rows])
     
     row.extend([Analysis.Sharpe(), Analysis.Calmar(), Analysis.Sortino()])
-    T = [4,22,11,101,252,504]
+    T = [3,30,14,180,365,730]
     for a in T:
-        row.append(Analysis.Treturns(a)[1])
+        row.append(Analysis.Treturns(day=a)[1])
         
     row.extend([Analysis.annual_mean, Analysis.annual_std])
 
@@ -51,4 +52,3 @@ def calc(csv_name, is_dataframe=0, initial_investment=150000, filename=None):
         row.append(period_wise_returns)
 
     return row
-    

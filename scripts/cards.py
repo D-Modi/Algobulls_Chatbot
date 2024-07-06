@@ -426,11 +426,11 @@ def next_page(q, stratergy, i):
             st.line_chart(q[2], y=['cum_pnl'])
             
         with bt1:
-            week = q[32]
-            month = q[31]
-            quat = q[35]
-            half = q[34]
-            yr = q[33]
+            week = q[32][0]
+            month = q[31][0]
+            quat = q[35][0]
+            half = q[34][0]
+            yr = q[33][0]
             
             
             c1, c2 = st.columns(2)
@@ -483,14 +483,14 @@ def next_page(q, stratergy, i):
 
 
                 variables = [
-                    avg_profit,
                     avg_loss,
+                    avg_profit,
                     values[0],
                     values[1],
                     q[15],
                     q[18],
                     q[20],
-                    q[23],
+                    f"{q[23]}%",
                     q[24],
                     q[25],
                     q[36],
@@ -502,7 +502,7 @@ def next_page(q, stratergy, i):
                     half,
                     yr
                 ]
-
+                variables = [str(v) for v in variables]
                 arr = np.array([strings, variables]).T
                 df = pd.DataFrame(arr, columns=["Duration", "Returns"])
 
@@ -541,22 +541,29 @@ def next_page(q, stratergy, i):
 
                 st.table(df.assign(hack='').set_index('hack'))    
                 
-            categories = ['Last Week', 'Last Month', 'Last Quater', 'Last 6 Months', 'Last Year']
+            categories = ['Last Week', 'Last Month', 'Last Quarter', 'Last 6 Months', 'Last Year']
             win_rates = [week, month, quat, half, yr]
+
+            # Create the bar plot
             fp, ap = plt.subplots(figsize=(10, 3))
             ap.bar(categories, win_rates, color='b')
             ap.set_xlabel('Time Period')
             ap.set_ylabel('Win Rate (%)')
             ap.set_title('Win Rate for Different Time Periods')
+
+            # Annotate the bars with the win rates
             for i in range(len(categories)):
                 ap.text(i, win_rates[i], f'{win_rates[i]:.2f}%', ha='center', va='bottom')
-            ap.set_xticklabels(labels=categories, rotation=45)  # Rotate x-axis labels for better visibility
+
+            # Rotate x-axis labels for better visibility
+            ap.set_xticklabels(labels=categories, rotation=45)
             st.pyplot(fp)
+    # Display the 
             #plt.tight_layout()  # Adjust layout to prevent overlapping labels
  
     with tab1:
         st.subheader("Heatmap")
-        htmap(q[2], 90)        
+        htmap(q[2], 180)        
         
         co1, co2,co3,co4,co5,co6 = st.columns([5,1,1,1,1,1])
         with co2:
