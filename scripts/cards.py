@@ -36,6 +36,8 @@ if 'index' not in st.session_state:
     st.session_state['index'] = None 
 if 'warning_message' not in st.session_state:
     st.session_state.warning_message = ""
+if 'sidebar' not in st.session_state:
+    st.session_state['sidebar']= "Home" 
     
 def click_button():
     st.session_state.clicked = not st.session_state.clicked
@@ -604,9 +606,11 @@ def get_files():
     
     return Files
         
-def CustomerPLBook():
-    customerPLBook_analysis_streamlit = customerPLBook_Analysis()
-    customerPLBook_analysis_streamlit.run()
+def CustomerPLBook(customerPLBook_analysis_streamlit):
+    flag = 0
+    flag = customerPLBook_analysis_streamlit.run()
+    if st.session_state['sidebar'] == "CustomerPLBook" and flag == 1:
+        customerPLBook_analysis_streamlit.sidebar()
 
 def home():
     if st.session_state.warning_message:
@@ -779,16 +783,24 @@ def home():
 
     if st.session_state.clicked:
         next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
-        with st.sidebar:
-            st.button("Return to cards", on_click=click_button_return)
+
+        if st.session_state['sidebar']=="Home":
+            with st.sidebar:
+                st.button("Return to cards", on_click=click_button_return)
 
 
+customerPLBook_analysis_streamlit = customerPLBook_Analysis()
+col1, col2 , col3= st.columns([1,3,10])
+with col1:
+    if st.button("Home", use_container_width=True):
+        st.session_state['sidebar']="Home"
 
-tab_home, tab_customer = st.tabs(["Home", "CustomerPLBook Analysis"])
-with tab_home:
+with col2:
+    if st.button("CustomerPLBook Analysis"):
+        st.session_state['sidebar']="CustomerPLBook"
+        
+if st.session_state['sidebar']=="Home":
     home()
-with tab_customer:
-    CustomerPLBook()
-
-
-
+if st.session_state['sidebar']=="CustomerPLBook":
+    CustomerPLBook(customerPLBook_analysis_streamlit)
+    

@@ -23,7 +23,10 @@ class customerPLBook_Analysis:
         self.six_months = None
         self.one_year = None
         self.Two_years = None
-
+        self.df = None
+        self.unique_ids = None
+        self.unique_dfs = None
+        self.uploaded_file = None
             
     def customerPLBook_analysis_display(self, Analysis):    
         daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
@@ -131,30 +134,35 @@ class customerPLBook_Analysis:
         st.table(tab)
         
     def run(self):
-        st.title("CSV File Uploader")
-        uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
-        default = 150000
-        if uploaded_file is not None:
-            st.title("Analysis of Uploaded File")
-            df = pd.read_csv(uploaded_file)
-    
-            dfs = {}
-
-        # Get unique id values
-            unique_ids = df['Startegy Name'].unique()
-
-        # Loop through the unique ids and create separate DataFrames
-            for uid in unique_ids:
-                dfs[uid] = df[df['Startegy Name'] == uid]
-            print(len(unique_ids))
-            unique_ids = np.insert(unique_ids, 0, "Complete Portfolio Analysis")
+        if self.uploaded_file is None:
+            st.title("CSV File Uploader")
+            self.uploaded_file  = st.file_uploader("Choose a CSV file", type="csv")
+            default = 150000
+            if self.uploaded_file  is not None:
+                st.title("Analysis of Uploaded File")
+                self.df = pd.read_csv(self.uploaded_file )
         
+                self.unique_dfs = {}
+
+            # Get unique id values
+                self.unique_ids = self.df['Startegy Name'].unique()
+
+            # Loop through the unique ids and create separate DataFrames
+                for uid in self.unique_ids:
+                    self.unique_dfs[uid] = self.df[self.df['Startegy Name'] == uid]
+                print(len(self.unique_ids))
+                self.unique_ids = np.insert(self.unique_ids, 0, "Complete Portfolio Analysis")
+        if self.uploaded_file  is not None:
+            return 1
+        return 0
+
+    def sidebar(self):
             with st.sidebar:
-                number = st.number_input("Enter initial investment", value=default, placeholder="Initial value taken as 150000")
+                number = st.number_input("Enter initial investment", value=150000, placeholder="Initial value taken as 150000")
                 st.write (f"Inital investment {number}")
                 option = st.radio(
                 "The stratergies being used are",
-                ("***" + x + "***" for x in unique_ids)
+                ("***" + x + "***" for x in self.unique_ids)
             )
                 option = option[3:-3]
                 st.write("\n")
@@ -184,9 +192,9 @@ class customerPLBook_Analysis:
                 self.quater= st.checkbox("Last Quater", False)
 
             if option == "Complete Portfolio Analysis":
-                Analysis = StatergyAnalysis(df, is_dataframe=1, number=number)
+                Analysis = StatergyAnalysis(self.df, is_dataframe=1, number=number)
             else:
-                Analysis = StatergyAnalysis(dfs[option], is_dataframe=1, number=number, customerPLBook=True)
+                Analysis = StatergyAnalysis(self.unique_dfs[option], is_dataframe=1, number=number, customerPLBook=True)
                 st.title(f"Analyis Of Stratrergy ***{option}***")
             self.customerPLBook_analysis_display(Analysis)
 
