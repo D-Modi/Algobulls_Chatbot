@@ -48,7 +48,7 @@ class StatergyAnalysis:
             data = pd.read_csv(filepath)
         else:
             data = pd.DataFrame(filepath)
-            
+        print(len(data))
         if 'EN_TIME' in data.columns:
             data.rename(columns={'EN_TIME': 'entry_timestamp'}, inplace=True)
         if 'P&L' in data.columns:
@@ -89,10 +89,8 @@ class StatergyAnalysis:
         return data
         
     def daily_equity_Curve(self, customerPLBook=False):
-        if customerPLBook:
-            daily_equity_curve = self.daily_returnts['cum_pnl'] + self.initial_investment
-        else:
-            daily_equity_curve = self.csv_data.groupby('Day')['equity_curve'].last()
+
+        daily_equity_curve = self.daily_returnts['cum_pnl'] + self.initial_investment
         self.equity_PctChange = daily_equity_curve.pct_change().dropna()
         self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
         self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
@@ -418,3 +416,22 @@ class StatergyAnalysis:
 
         fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
         return fig
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
