@@ -1,8 +1,13 @@
 import streamlit as st
-import matplotlib.pyplot as plt  
 from stratrgy_analysis import StatergyAnalysis
 import pandas as pd
 import numpy as np
+from calculations import calc_for_customer_plb
+from utils import *
+
+if 'card' not in st.session_state:
+    st.session_state['card']= "no card" 
+
 
 class customerPLBook_Analysis:
     
@@ -28,69 +33,127 @@ class customerPLBook_Analysis:
         self.unique_dfs = None
         self.uploaded_file = None
             
-    def customerPLBook_analysis_display(self, Analysis):    
+    def customerPLBook_analysis_display(self, Analysis, option):    
         daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
 
-        st.write(f"***Max Drawdown***: {Analysis.drawdown_max}")
-        st.write(f"***Maximum Drawdowm percentage***: {Analysis.drawdown_pct}")
-        st.subheader("Drawdown Curve")
-        st.line_chart(Analysis.csv_data, y='drawdown_pct', x='Day')
-        st.write(f"***Average loss per losing trade***: {Analysis.avgProfit(Analysis.csv_data, -1)[0]}")
-        st.write(f"***Average gain per winning trade***: {Analysis.avgProfit(Analysis.csv_data, 1)[0]}")
-        st.write(f"***Maximum Gains***: {Analysis.max_profit(Analysis.csv_data)[0]}")
-        st.write(f"***Minimum Gains***: {Analysis.min_profit(Analysis.csv_data)[0]}")
-        st.write(f"Number of ***short trades***: {Analysis.num_tradeType('short')}")
-        st.write(f"Number of ***long trades***: {Analysis.num_tradeType('long')}")
-        st.write (f"***Average Trades per Day***: {Analysis.avgTrades(daily_returns)}")
-        st.write(f"Number of ***wins***: {Analysis.num_loss(Analysis.csv_data, 1)}")
-        st.write(f"Number of ***losses***: {Analysis.num_loss(Analysis.csv_data, -1)}")
-        st.write(f"***HIT Ratio***: {Analysis.HIT()}")
-        st.write(f"***ROI***: {Analysis.roi(monthly_returns)[0]}")
-        st.write(f"***ROI %***: {Analysis.roi(monthly_returns)[1]}%")
-        st.write(f"***Profit Factor***: {Analysis.ProfitFactor()[0]}")
-        st.write(f"***Max Win Streak***: {Analysis.max_consecutive(Analysis.csv_data, 1)}")
-        st.write(f"***Max Loss streak***: {Analysis.max_consecutive(Analysis.csv_data, -1)}")
-        if self.month:
-            last_month_data = daily_returns.iloc[-21:]
-            st.write(f"Win Rate for ***last Month***: {Analysis.win_rate(last_month_data)}")
-        if self.week:
-            last_month_data = daily_returns.iloc[-6:]
-            st.write(f"Win Rate for ***last Week***: {Analysis.win_rate(last_month_data)}")
-        if self.year:
-            last_month_data = daily_returns.iloc[-213:]
-            st.write(f"Win Rate for ***last Year***: {Analysis.win_rate(last_month_data)}")
-        if self.month6:
-            last_month_data = daily_returns.iloc[-101:]
-            st.write(f"Win Rate for ***last 6 Months***: {Analysis.win_rate(last_month_data)}")
-        if self.quater:
-            last_month_data = daily_returns.iloc[-59:]
-            st.write(f"Win Rate for ***last Quater:*** {Analysis.win_rate(last_month_data)}")
+        col1, col2, col3 = st.columns([1, 2, 0.6])
 
-        st.subheader("Equity Curve")
-        st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
-        if self.three_days:
-            st.write(f"Returns for the ***last 3 Days***: {Analysis.Treturns(day=3)[1]}%")
-        if self.thirty_days:
-            st.write(f"Returns for the ***last 30 Days***: {Analysis.Treturns(day=30)[1]}%")
-        if self.two_week:
-            st.write(f"Returns for the ***last 2 Weeks***: {Analysis.Treturns(day=14)[1]}%")
-        if self.six_months:
-            st.write(f"Returns for the ***last 6 Months***: {Analysis.Treturns(day=180)[1]}%")
-        if self.one_year:
-            st.write(f"Returns for the ***last 1 Year***: {Analysis.Treturns(day=365)[1]}%")
-        if self.Two_years:
-            st.write(f"Returns for the ***last 2 Years***: {Analysis.Treturns(day=730)[1]}%")
+        with col1:
+            if st.button("Strategy Card"):
+                st.session_state["card"] = "card"
 
-        if self.Daily:
-            self.daisply(daily_returns, "Day", Analysis)
-        if self.Monthly:
-            self.daisply(monthly_returns, "Month", Analysis)
-        if self.Yearly:
-            self.daisply(yearly_returns, "Year", Analysis)
-        if self.Weekly:
-            self.daisply(weekly_returns, "Week", Analysis)
-        if self.Day:
-            self.display(weekday_returns, Analysis)
+        with col3:
+            if st.button("Return to Analysis"):
+                st.session_state["card"] = "no card"
+
+
+        if st.session_state['card'] == "no card":
+            # Collecting the data
+            data = {
+                "Metric": [
+                    "Max Drawdown",
+                    "Maximum Drawdown Percentage"
+                ],
+                "Value": [
+                    Analysis.drawdown_max,
+                    Analysis.drawdown_pct
+                ]
+            }
+
+            # Create a DataFrame
+            df = pd.DataFrame(data)
+
+            # Display the table
+            st.table(df)
+            st.subheader("Drawdown Curve")
+            st.line_chart(Analysis.csv_data, y='drawdown_pct', x='Day')
+            data = {
+                "Metric": [
+                    "Average Loss per Losing Trade",
+                    "Average Gain per Winning Trade",
+                    "Maximum Gains",
+                    "Minimum Gains",
+                    "Number of Short Trades",
+                    "Number of Long Trades",
+                    "Average Trades per Day",
+                    "Number of Wins",
+                    "Number of Losses",
+                    "HIT Ratio",
+                    "ROI",
+                    "ROI %",
+                    "Profit Factor",
+                    "Max Win Streak",
+                    "Max Loss Streak"
+                ],
+                "Value": [
+                    Analysis.avgProfit(Analysis.csv_data, -1)[0],
+                    Analysis.avgProfit(Analysis.csv_data, 1)[0],
+                    Analysis.max_profit(Analysis.csv_data)[0],
+                    Analysis.min_profit(Analysis.csv_data)[0],
+                    Analysis.num_tradeType('short'),
+                    Analysis.num_tradeType('long'),
+                    Analysis.avgTrades(daily_returns),
+                    Analysis.num_loss(Analysis.csv_data, 1),
+                    Analysis.num_loss(Analysis.csv_data, -1),
+                    Analysis.HIT(),
+                    Analysis.roi(monthly_returns)[0],
+                    f"{Analysis.roi(monthly_returns)[1]}%",
+                    Analysis.ProfitFactor()[0],
+                    Analysis.max_consecutive(Analysis.csv_data, 1),
+                    Analysis.max_consecutive(Analysis.csv_data, -1)
+                ]
+            }
+
+            # Create a DataFrame
+            df = pd.DataFrame(data)
+
+            # Display the table
+            st.table(df)
+            if self.month:
+                last_month_data = daily_returns.iloc[-21:]
+                st.write(f"Win Rate for ***last Month***: {Analysis.win_rate(last_month_data)}")
+            if self.week:
+                last_month_data = daily_returns.iloc[-6:]
+                st.write(f"Win Rate for ***last Week***: {Analysis.win_rate(last_month_data)}")
+            if self.year:
+                last_month_data = daily_returns.iloc[-213:]
+                st.write(f"Win Rate for ***last Year***: {Analysis.win_rate(last_month_data)}")
+            if self.month6:
+                last_month_data = daily_returns.iloc[-101:]
+                st.write(f"Win Rate for ***last 6 Months***: {Analysis.win_rate(last_month_data)}")
+            if self.quater:
+                last_month_data = daily_returns.iloc[-59:]
+                st.write(f"Win Rate for ***last Quater:*** {Analysis.win_rate(last_month_data)}")
+
+            st.subheader("Equity Curve")
+            st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
+            if self.three_days:
+                st.write(f"Returns for the ***last 3 Days***: {Analysis.Treturns(day=3)[1]}%")
+            if self.thirty_days:
+                st.write(f"Returns for the ***last 30 Days***: {Analysis.Treturns(day=30)[1]}%")
+            if self.two_week:
+                st.write(f"Returns for the ***last 2 Weeks***: {Analysis.Treturns(day=14)[1]}%")
+            if self.six_months:
+                st.write(f"Returns for the ***last 6 Months***: {Analysis.Treturns(day=180)[1]}%")
+            if self.one_year:
+                st.write(f"Returns for the ***last 1 Year***: {Analysis.Treturns(day=365)[1]}%")
+            if self.Two_years:
+                st.write(f"Returns for the ***last 2 Years***: {Analysis.Treturns(day=730)[1]}%")
+
+            if self.Daily:
+                self.daisply(daily_returns, "Day", Analysis)
+            if self.Monthly:
+                self.daisply(monthly_returns, "Month", Analysis)
+            if self.Yearly:
+                self.daisply(yearly_returns, "Year", Analysis)
+            if self.Weekly:
+                self.daisply(weekly_returns, "Week", Analysis)
+            if self.Day:
+                self.display(weekday_returns, Analysis)
+
+        if st.session_state['card'] == 'card':
+            q = calc_for_customer_plb(option, Analysis)
+            next_page(q, option, 0)
 
     def daisply(self, daily_returns, Quant, Analysis):
         print(Quant)
@@ -98,8 +161,22 @@ class customerPLBook_Analysis:
             st.header("Daily Analysis")
         else:
             st.header(f"{Quant}ly Analysis")
-            st.write(f"***{Quant}ly Average Returns***: {Analysis.avgReturns(daily_returns)[0]}")
-            st.write(f"***{Quant}ly Average Returns %***: {Analysis.avgReturns(daily_returns)[1]}%")
+            data = {
+                "Metric": [
+                    f"{Quant}ly Average Returns",
+                    f"{Quant}ly Average Returns %"
+                ],
+                "Value": [
+                    Analysis.avgReturns(daily_returns)[0],
+                    f"{Analysis.avgReturns(daily_returns)[1]}%"
+                ]
+            }
+
+            # Create a DataFrame
+            df = pd.DataFrame(data)
+
+            # Display the table
+            st.table(df)
 
         #days_hist, days_tab = Analysis.compare_hist(daily_returns, [1000, 2000, 3000, 4000, 5000], Quant)
         freq_hist = Analysis.freq_hist(daily_returns, [-5000,-4000, -3000, -2000, -1000, 0, 1000, 2000, 3000, 4000, 5000])
@@ -107,15 +184,37 @@ class customerPLBook_Analysis:
         st.pyplot(freq_hist)
         if len(daily_returns) > 1:
             with st.expander("More information"):
-                st.write(f"Number of ***trading {Quant}s***: {Analysis.trading_num(daily_returns)}")
-                st.write(f"Number of ***Profitable {Quant}s***: {Analysis.num_loss(daily_returns, 1)} {Quant}")
-                st.write(f"Number of ***Loss Making {Quant}s***: {Analysis.num_loss(daily_returns, -1)} {Quant} ")
-                st.write(f"***Most Profitable {Quant}***: {Analysis.max_profit(daily_returns)[1]}")
-                st.write(f"Maximum ***Gains*** in a {Quant}: {Analysis.max_profit(daily_returns)[0]}")
-                st.write(f"***Least Profitable {Quant}***: {Analysis.min_profit(daily_returns)[1]}")
-                st.write(f"Maximum ***Loss*** in a {Quant}: {Analysis.min_profit(daily_returns)[0]}")
-                st.write(f"***Max Win Streak***: {Analysis.max_consecutive(daily_returns, 1)}")
-                st.write(f"***Max Loss streak***: {Analysis.max_consecutive(daily_returns, -1)}")
+                # Data for the table
+                data = {
+                    "Metric": [
+                        f"Number of trading {Quant}s",
+                        f"Number of Profitable {Quant}s",
+                        f"Number of Loss Making {Quant}s",
+                        f"Most Profitable {Quant}",
+                        f"Maximum Gains in a {Quant}",
+                        f"Least Profitable {Quant}",
+                        f"Maximum Loss in a {Quant}",
+                        "Max Win Streak",
+                        "Max Loss Streak"
+                    ],
+                    "Value": [
+                        Analysis.trading_num(daily_returns),
+                        Analysis.num_loss(daily_returns, 1),
+                        Analysis.num_loss(daily_returns, -1),
+                        Analysis.max_profit(daily_returns)[1],
+                        Analysis.max_profit(daily_returns)[0],
+                        Analysis.min_profit(daily_returns)[1],
+                        Analysis.min_profit(daily_returns)[0],
+                        Analysis.max_consecutive(daily_returns, 1),
+                        Analysis.max_consecutive(daily_returns, -1)
+                    ]
+                }
+
+                # Create a DataFrame
+                df = pd.DataFrame(data)
+
+                # Display the table
+                st.table(df)
 
             st.subheader(f"Profit/Loss Data per {Quant}")
             st.bar_chart(daily_returns, y=['pnl_absolute'] )
@@ -139,7 +238,7 @@ class customerPLBook_Analysis:
             self.uploaded_file  = st.file_uploader("Choose a CSV file", type="csv")
             default = 150000
             if self.uploaded_file  is not None:
-                st.title("Analysis of Uploaded File")
+                st.header("Analysis of Uploaded File")
                 self.df = pd.read_csv(self.uploaded_file )
         
                 self.unique_dfs = {}
@@ -193,8 +292,10 @@ class customerPLBook_Analysis:
 
             if option == "Complete Portfolio Analysis":
                 Analysis = StatergyAnalysis(self.df, is_dataframe=1, number=number)
+                st.session_state['card'] = 'no card'
             else:
                 Analysis = StatergyAnalysis(self.unique_dfs[option], is_dataframe=1, number=number, customerPLBook=True)
-                st.title(f"Analyis Of Stratrergy ***{option}***")
-            self.customerPLBook_analysis_display(Analysis)
+                st.session_state['card'] = 'no card'
+                st.subheader(f"Analysis Of Strategy ***{option}***")
+            self.customerPLBook_analysis_display(Analysis, option)
 
