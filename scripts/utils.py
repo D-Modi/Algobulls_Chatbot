@@ -368,7 +368,7 @@ def next_page(q, stratergy, i):
     
     with tab3:
         Dur = [252*2, 252, 101,11, 22, 4]
-        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '30 Days', '15 Days', '3 Days']
+        Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '30 Days', '14 Days', '3 Days']
         returns = [f"{q[19][1]}%", f"{q[44]}%", f"{q[43]}%", f"{q[42]}%", f"{q[40]}%", f"{q[41]}%", f"{q[39]}%"]
         arr = np.array([Duration, returns]).T
         df = pd.DataFrame(arr, columns=["Duration", "Returns"])
