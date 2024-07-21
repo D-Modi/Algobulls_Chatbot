@@ -55,8 +55,8 @@ class customerPLBook_Analysis:
                     "Maximum Drawdown Percentage"
                 ],
                 "Value": [
-                    Analysis.drawdown_max,
-                    Analysis.drawdown_pct
+                    round(Analysis.drawdown_max, 2),
+                    round(Analysis.drawdown_pct, 2)
                 ]
             }
 
@@ -64,7 +64,7 @@ class customerPLBook_Analysis:
             df = pd.DataFrame(data)
 
             # Display the table
-            st.table(df)
+            st.write(df)
             st.subheader("Drawdown Curve")
             st.line_chart(Analysis.csv_data, y='drawdown_pct', x='Day')
             data = {
