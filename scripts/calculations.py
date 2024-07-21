@@ -22,7 +22,7 @@ def calc(csv_name, is_dataframe=0, initial_investment=150000, filename=None, sav
     row= [strategy_code, Analysis.csv_data, Analysis.daily_returnts, Analysis.monthly_returns, Analysis.weekly_returns, Analysis.weekday_returns, Analysis.yearly_returns, Analysis.drawdown_max, Analysis.drawdown_pct,Analysis.avgProfit(Analysis.csv_data, -1),Analysis.avgProfit(Analysis.csv_data, 1), Analysis.profit[0], Analysis.loss[0], Analysis.short, Analysis.long, Analysis.avgTrades(Analysis.daily_returnts), Analysis.num_wins, Analysis.num_loss(Analysis.csv_data, -1), Analysis.Hit_Daywise, Analysis.roi(), Analysis.profit_factor, Analysis.pos, Analysis.neg, Analysis.yearlyVola(),Analysis.max_consecutive(Analysis.csv_data, 1), Analysis.max_consecutive(Analysis.csv_data, -1), Analysis.annual_std, Analysis.annual_mean, Analysis.initial_investment, Analysis.risk_free_rate, Analysis.equity_PctChange]
     
     #Win_Rate by Period
-    d = [30, 7, 365, 180, 120]
+    d = [30, 7, 365, 180, 90]
     for t in d:
         start_date = Analysis.date_calc(day=t)
         index_number = Analysis.daily_returnts.index.get_loc(start_date)
