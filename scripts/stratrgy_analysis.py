@@ -361,8 +361,8 @@ class StatergyAnalysis:
         return round(len(self.csv_data)/len(daily_returns) , 2)
     
     def ProfitFactor(self):
-        daily_positive = self.daily_returnts[self.daily_returnts['pnl_absolute'] > 0]['pnl_absolute'].sum()
-        daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
+        daily_positive = self.csv_data[self.csv_data['pnl_absolute'] > 0]['pnl_absolute'].sum()
+        daily_neg = self.csv_data[self.csv_data['pnl_absolute'] < 0]['pnl_absolute'].sum()
         return round(daily_positive/daily_neg * -1 , 2), daily_neg, daily_positive
  
     def avgProfit(self, daily_returns=None, i=1):
