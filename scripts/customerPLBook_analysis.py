@@ -109,36 +109,52 @@ class customerPLBook_Analysis:
 
             # Display the table
             st.table(df)
+            d = [30, 7, 365, 180, 90]
+            row = []
+            for t in d:
+                start_date = Analysis.date_calc(day=t)
+                index_number = Analysis.daily_returnts.index.get_loc(start_date)
+                num_rows = len(Analysis.daily_returnts)-index_number
+                last_month_data = Analysis.daily_returnts.iloc[index_number:]
+        
+                row.append([Analysis.win_rate(last_month_data), num_rows])
             if self.month:
                 last_month_data = daily_returns.iloc[-21:]
-                st.write(f"Win Rate for ***last Month***: {Analysis.win_rate(last_month_data)}")
+                st.write(f"Win Rate for ***last Month***: {row[0][0]}")
             if self.week:
                 last_month_data = daily_returns.iloc[-6:]
-                st.write(f"Win Rate for ***last Week***: {Analysis.win_rate(last_month_data)}")
+                st.write(f"Win Rate for ***last Week***: {row[1][0]}")
             if self.year:
                 last_month_data = daily_returns.iloc[-213:]
-                st.write(f"Win Rate for ***last Year***: {Analysis.win_rate(last_month_data)}")
+                st.write(f"Win Rate for ***last Year***: {row[2][0]}")
             if self.month6:
                 last_month_data = daily_returns.iloc[-101:]
-                st.write(f"Win Rate for ***last 6 Months***: {Analysis.win_rate(last_month_data)}")
+                st.write(f"Win Rate for ***last 6 Months***: {row[3][0]}")
             if self.quater:
                 last_month_data = daily_returns.iloc[-59:]
-                st.write(f"Win Rate for ***last Quater:*** {Analysis.win_rate(last_month_data)}")
+                st.write(f"Win Rate for ***last Quater:*** {row[4][0]}")
 
             st.subheader("Equity Curve")
             st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
+            
+            T = [3,30,14,180,365,730]
+            row = []
+            for a in T:
+                row.append(Analysis.Treturns(day=a)[1])
+                
             if self.three_days:
-                st.write(f"Returns for the ***last 3 Days***: {Analysis.Treturns(day=3)[1]}%")
+                st.write(f"Returns for the ***last 3 Days***: {row[0]}%")
             if self.thirty_days:
-                st.write(f"Returns for the ***last 30 Days***: {Analysis.Treturns(day=30)[1]}%")
+                st.write(f"Returns for the ***last 30 Days***: {row[1]}%")
             if self.two_week:
-                st.write(f"Returns for the ***last 2 Weeks***: {Analysis.Treturns(day=14)[1]}%")
+                st.write(f"Returns for the ***last 2 Weeks***: {row[2]}%")
             if self.six_months:
-                st.write(f"Returns for the ***last 6 Months***: {Analysis.Treturns(day=180)[1]}%")
+                st.write(f"Returns for the ***last 6 Months***: {row[3]}%")
             if self.one_year:
-                st.write(f"Returns for the ***last 1 Year***: {Analysis.Treturns(day=365)[1]}%")
+                st.write(f"Returns for the ***last 1 Year***: {row[4]}%")
             if self.Two_years:
-                st.write(f"Returns for the ***last 2 Years***: {Analysis.Treturns(day=730)[1]}%")
+                st.write(f"Returns for the ***last 2 Years***: {row[5]}%")
+
 
             if self.Daily:
                 self.daisply(daily_returns, "Day", Analysis)
