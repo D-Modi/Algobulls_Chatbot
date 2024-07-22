@@ -1,4 +1,5 @@
 import streamlit as st
+from streamlit.errors import StreamlitAPIException
 from customerPLBook_analysis import customerPLBook_Analysis
 from utils import *
 
@@ -22,6 +23,8 @@ if 'index' not in st.session_state:
     st.session_state['index'] = None 
 if 'warning_message' not in st.session_state:
     st.session_state.warning_message = ""
+
+set_page_config()
 
 def CustomerPLBook(customerPLBook_analysis_streamlit):
     flag = 0

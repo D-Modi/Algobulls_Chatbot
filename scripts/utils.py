@@ -1,4 +1,5 @@
 
+from streamlit.errors import StreamlitAPIException
 import streamlit as st
 import matplotlib.pyplot as plt  
 import pandas as pd
@@ -14,7 +15,12 @@ import re
 import glob
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
-st.set_page_config(layout="wide")
+def set_page_config():
+    if 'page_config_set' not in st.session_state:
+        st.set_page_config(layout="wide")
+        st.session_state['page_config_set'] = True
+        
+set_page_config()
     
 def click_button():
     st.session_state.clicked = not st.session_state.clicked
