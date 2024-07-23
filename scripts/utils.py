@@ -224,6 +224,34 @@ def next_page(q, stratergy, i):
         if is_valid_datetime(tempstr[0]):
             entry_data_col_index = data.columns[j]
             break;
+
+    def parse_datetime(date_str):
+        formats = [
+            "%d-%m-%Y %H:%M",
+            "%d-%m-%Y %H:%M:%S",
+            "%d/%m/%Y %H:%M",
+            "%d/%m/%Y %H:%M:%S",
+            "%Y-%m-%d %H:%M",
+            "%Y-%m-%d %H:%M:%S",
+            "%Y/%m/%d %H:%M",
+            "%Y/%m/%d %H:%M:%S"
+        ]
+        for fmt in formats:
+            try:
+                return datetime.strptime(date_str, fmt)
+            except ValueError:
+                continue
+        raise ValueError(f"Date format not recognized: {date_str}")
+
+
+    # Format datetime to string in desired format
+    data.loc[:, entry_data_col_index] = data.loc[:, entry_data_col_index].apply(parse_datetime)
+    for i in range(len(data)):
+        try:
+            data.loc[i, entry_data_col_index] = data.loc[i, entry_data_col_index].strftime('%Y-%m-%d %H:%M')
+        except:
+            pass
+
     
     data = data.sort_values(by=entry_data_col_index)
     try:
@@ -245,7 +273,7 @@ def next_page(q, stratergy, i):
                 enddate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[i].split(" ")[0], date_format)
                 break;
             except:
-                i -= 1        
+                i -= 1     
     custom_aligned_text = f"""
         <div style="display: flex; justify-content: space-between; color: green; font-size: 24px;">
         <span style="text-align: left;">   </span>
