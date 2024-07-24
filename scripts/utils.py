@@ -238,7 +238,7 @@ def next_page(q, stratergy, i):
         ]
         for fmt in formats:
             try:
-                return datetime.strptime(date_str, fmt)
+                return datetime.strptime(str(date_str), fmt)
             except ValueError:
                 continue
         raise ValueError(f"Date format not recognized: {date_str}")
