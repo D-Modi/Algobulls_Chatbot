@@ -43,7 +43,7 @@ class StatergyAnalysis:
         self.profit = self.max_profit(self.csv_data)
         self.loss = self.max_profit(self.csv_data, i=4)
         
-    def new_csv(Self, filepath, is_dataframe):
+    def new_csv(self, filepath, is_dataframe=0):
         if is_dataframe == 0:
             data = pd.read_csv(filepath)
         else:
@@ -73,7 +73,7 @@ class StatergyAnalysis:
             if start > end:
                 data = data.iloc[::-1].reset_index(drop=True)    
             data = data.reset_index()
-            data = data.drop(columns=['entry_timestamp'])
+            # data = data.drop(columns=['entry_timestamp'])
 
             data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
             data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
