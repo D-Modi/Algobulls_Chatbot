@@ -67,7 +67,7 @@ class StatergyAnalysis:
 
         data = data.dropna(subset=['pnl_absolute'])
         if 'Day' not in data.columns:
-            data['date'] = pd.to_datetime(data['entry_timestamp'])
+            data['date'] = pd.to_datetime(data['entry_timestamp'], format='mixed')
             start = data['date'].iloc[0]
             end = data['date'].iloc[-1]
             if start > end:
