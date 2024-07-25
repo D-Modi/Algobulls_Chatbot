@@ -119,8 +119,10 @@ class StatergyAnalysis:
         self.monthly_returns = monthly_analysis
         
         weekday_returns = self.csv_data.groupby('weekday').sum(numeric_only = True)
-        #weekday_returns['pnl_absolute'] = weekday_returns['pnl_absolute'].abs()
         weekday_returns = weekday_returns[weekday_returns['pnl_absolute'] != 0]
+        for d in ['Sat', 'Sun']:
+            if d in weekday_returns.index:
+                weekday_returns.drop(d, inplace=True)
         weekday_returns[['pnl_absolute']]
         self.weekday_returns = weekday_returns[['pnl_absolute']]
 
