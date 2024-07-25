@@ -176,7 +176,7 @@ if  st.session_state['show_weights'] == False and  st.session_state['Entered_val
         st.session_state['show_investments'] = True
 
 if st.session_state['show_weights']:
-    # try:  
+    try:  
         if st.session_state['Entered_values'] == False:
             get_weights(options)
             
@@ -198,11 +198,11 @@ if st.session_state['show_weights']:
                 
             if(st.button("Re-Enter Weights & initial invetment")):
                 st.session_state['Entered_values'] = False
-    # except:    
-    #     print("Waiting")
+    except:    
+        print("Waiting")
 
 if st.session_state['show_investments']:
-        # try:  
+    try:  
         if st.session_state['Entered_values'] == False:
             get_investment(options)
             
@@ -224,7 +224,7 @@ if st.session_state['show_investments']:
                 
             if(st.button("Re-Enter invetment amount")):
                 st.session_state['Entered_values'] = False
-    # except:    
-    #     print("Waiting")
+    except:    
+        print("Waiting")
 
 
