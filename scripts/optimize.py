@@ -88,13 +88,15 @@ def get_weights(options):
     for j in range(len(options)):
         strategy = options[j]
         if st.session_state['weights'] is None:
-            number = st.number_input(f"Enter weights for {strategy}", value=equal, key= strategy, placeholder=f"{strategy}_weights")
+            number = st.number_input(f"Enter weights for {strategy}",min_value=0.0, value=equal, key= strategy, placeholder=f"{strategy}_weights")
         else:
-            number = st.number_input(f"Enter weights for {strategy}", value=st.session_state['weights'][strategy], key= strategy, placeholder=f"{strategy}_RE")
+            number = st.number_input(f"Enter weights for {strategy}",min_value=0.0, value=st.session_state['weights'][strategy], key= strategy, placeholder=f"{strategy}_RE")
         tot -= number
         sum_weights +=number
-        if(j!=len(options)-1):
+        if(j!=len(options)-1 and tot>=0):
             equal = tot/(len(options)-j-1)
+        else:
+            equal = 0.0
         weights[strategy] = number
         
     if st.button("submit", key= "weights_bt"):
