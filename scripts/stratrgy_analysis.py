@@ -73,7 +73,7 @@ class StatergyAnalysis:
             if start > end:
                 data = data.iloc[::-1].reset_index(drop=True)    
             data = data.reset_index()
-            # data = data.drop(columns=['entry_timestamp'])
+            data = data.drop(columns=['entry_timestamp'])
 
             data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
             data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
