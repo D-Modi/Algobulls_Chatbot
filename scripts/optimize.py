@@ -6,6 +6,7 @@ import glob
 from stratrgy_analysis import StatergyAnalysis
 from dateutil import parser
 from customerPLBook_analysis import customerPLBook_Analysis
+from calculations import calc
 
 if 'show_investments' not in st.session_state:
     st.session_state['show_investments'] = False 
@@ -32,40 +33,36 @@ set_page_config()
 def parse_dates(date_str):
     return parser.parse(date_str)
 
-def get_csv_data(filepath):
-    
-    data = pd.read_csv(filepath)
-    if 'EN_TIME' in data.columns:
-        data.rename(columns={'EN_TIME': 'entry_timestamp'}, inplace=True)
-    if 'P&L' in data.columns:
-        data.rename(columns={'P&L': 'pnl_absolute'}, inplace=True)
-    if 'Equity Curve' in data.columns:
-        data.rename(columns={'Equity Curve': 'equity_curve'}, inplace=True)
-    if 'EN_TT' in data.columns:
-        data.rename(columns={'EN_TT': 'entry_transaction_type'}, inplace=True)
-    if 'cumulative_pnl_absolute' in data.columns:
-        data.rename(columns={'cumulative_pnl_absolute': 'pnl_cumulative_absolute'}, inplace=True)
-    if 'Drawdown_%' in data.columns:
-        data.rename(columns={'Drawdown_%': 'drawdown_percentage'}, inplace=True)
-    if 'Drawdown %' in data.columns:
-        data.rename(columns={'Drawdown %': 'drawdown_percentage'}, inplace=True)
-    data['entry_transaction_type'] = data['entry_transaction_type'].replace({'BUY': 0, 'SELL': 1})
+def get_files():
+    path = "files/StrategyBacktestingPLBook-*.csv"
+    Files = []
 
-    data = data.dropna(subset=['pnl_absolute'])
-    data['Date'] = data['entry_timestamp'].apply(parse_dates)
-    data.drop(columns=['entry_timestamp'], inplace=True)   
-    data['Day'] = pd.to_datetime(data.Date,format = '%Y-%m')
-    data['Week'] = pd.to_datetime(data.Date,format = '%dd-%m')
-    data['Month'] = pd.to_datetime(data.Date,format = '%Y-%m')
-    data['Year'] = pd.to_datetime(data.Date,format = '%Y-%m')
-    data['weekday'] = pd.to_datetime(data.Date,format = '%a')
+    for file in glob.glob(path, recursive=True):
+        found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
+        Files.append(found)
     
-    data['Day'] = data['Day'].dt.strftime('%Y-%m-%d')
-    data['Week'] = data['Week'].dt.strftime('%Y-%U')
-    data['Month'] = data['Month'].dt.strftime('%Y-%m')
-    data['Year'] = data['Year'].dt.strftime('%Y')
-    data['weekday'] = data['weekday'].dt.strftime('%a')
-    return data
+    return Files
+
+def data_list(options, weights): 
+    data = []
+    dfs = {}
+    head = ['Strategy_Code', 'ROI%', 'HIT Ratio', 'Profit Factor']
+    
+    for i in options:
+        csv_path = f"files/StrategyBacktestingPLBook-{i}.csv"
+        row = calc(csv_path)
+        data.append([i, row[19][1], row[18], row[20]])
+        dfs[i] = row[1]
+        
+    portfolio = merged_csv(options, dfs, weights)
+    Analysis = calc(portfolio, is_dataframe=1, filename="Portfolio")
+    data.append([Analysis[0], Analysis[19][1], Analysis[18], Analysis[20]])
+    
+    df = pd.DataFrame(data, columns=head) 
+    df.set_index("Strategy_Code", inplace=True)
+    
+    st.write(df)
+    return portfolio
     
 def calc_amt(options, weights, total_investment):
     investment = {}
@@ -74,8 +71,20 @@ def calc_amt(options, weights, total_investment):
         st.session_state['Total_investment'] = total_investment
         st.session_state['investment'] = investment
         st.session_state['weights'] = weights
+
+def calc_weights(options, investment, total_investment):
+    weights = {}
+    for e in options:
+        weights[e] = investment[e]/total_investment
+        st.session_state['Total_investment'] = total_investment
+        st.session_state['investment'] = investment
+        st.session_state['weights'] = weights
     
 def get_weights(options):
+    if not options:
+        st.write("No strategies Seleted")
+        return
+    
     tot = 100.0
     sum_weights = 0
     weights = {} 
@@ -106,6 +115,10 @@ def get_weights(options):
         calc_amt(options, weights, investment)
 
 def get_investment(options):
+    if not options:
+        st.write("No strategies Seleted")
+        return
+    
     total_investment = 0.0
     amount = {}    
     for i in options:
@@ -117,27 +130,23 @@ def get_investment(options):
         amount[i] = number
     
     if st.button("submit", key= "investment_bt"):
-        st.session_state['Total_investment'] = total_investment
-        st.session_state['investment'] = amount
         st.session_state['Entered_values'] = True
+        calc_weights(options, amount, total_investment)
     
-    
-def merged_csv(options, investment):
+def merged_csv(options, dfs, weight):
     data = pd.DataFrame()
     
     for i in options:
-        csv_path = f"files/StrategyBacktestingPLBook-{i}.csv"
-        df = get_csv_data(csv_path)
-        initial_investment =  df['equity_curve'].iat[-1] - df['pnl_cumulative_absolute'].iat[-1]
-        df['pnl_absolute'] = df['pnl_absolute']/initial_investment* investment[i]    
+        df = dfs[i]
+        df['pnl_absolute'] = df['pnl_absolute'] * weight[i]
         
         if len(data) == 0:  
             data = df
         else:
             data = pd.concat([df, data], axis=0) 
     
-    data['Date'] = data['Date'].dt.strftime('%Y-%m-%d %H:%M:%S')
-    data.sort_values(by='Date')
+    data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
+    data.sort_values(by='date')
     data.reset_index(inplace=True)
     data['pnl_absolute_cumulative'] = data['pnl_absolute'].cumsum()
     
@@ -147,20 +156,6 @@ def complete_analysis(data, total_investment):
     Analysis = StatergyAnalysis(data, is_dataframe=1, number=total_investment, customerPLBook=True)
     obj =  customerPLBook_Analysis()
     obj.customerPLBook_analysis_display(Analysis, option=None)
-    
-def calc_roi(data, total_investment):
-    roi = data['pnl_absolute_cumulative'].iat[-1]/total_investment*100
-    return roi      
-    
-def get_files():
-    path = "files/StrategyBacktestingPLBook-*.csv"
-    Files = []
-
-    for file in glob.glob(path, recursive=True):
-        found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
-        Files.append(found)
-    
-    return Files
 
 Files = get_files()
 
@@ -168,7 +163,6 @@ options = st.multiselect(
     "Selet Trading Stratergies",
     Files)
 
-st.write("You selected:", options)
 if st.session_state['show_investments'] == False and  st.session_state['Entered_values'] == False:
     if st.button("Enter Weights"):
         st.session_state['show_weights'] = True
@@ -178,55 +172,39 @@ if  st.session_state['show_weights'] == False and  st.session_state['Entered_val
         st.session_state['show_investments'] = True
 
 if st.session_state['show_weights']:
-    try:  
-        if st.session_state['Entered_values'] == False:
-            get_weights(options)
+    if st.session_state['Entered_values'] == False:
+        get_weights(options)
+        
+    if st.session_state['Entered_values'] == True:
+        st.write(st.session_state['weights'])
+        st.write("Total investment", st.session_state['Total_investment'])
+        
+        if(st.button("Re-Enter Weights & initial invetment")):
+            st.session_state['Entered_values'] = False
+
+if st.session_state['show_investments']: 
+    if st.session_state['Entered_values'] == False:
+        get_investment(options)
+        
+    if st.session_state['Entered_values'] == True:
+        st.write(st.session_state['investment'])
+        st.write("Total investment", st.session_state['Total_investment'])
             
-        if st.session_state['Entered_values'] == True:
-            st.write(st.session_state['weights'])
-            st.write("Total investment", st.session_state['Total_investment'])
-            
-            investment = st.session_state['investment']
-            total_investment = st.session_state['Total_investment']
-            combined_csv = merged_csv(options, investment)
-            roi = calc_roi(combined_csv, total_investment)
-            st.write(f"ROI: {roi}")
-            
-            if st.session_state['show_Analysis'] == False:
-                if(st.button("Show Complete Analysis")):
-                    st.session_state['show_Analysis'] = True
-            if st.session_state['show_Analysis'] == True:
-                complete_analysis(combined_csv, total_investment)
+        if(st.button("Re-Enter invetment amount")):
+            st.session_state['Entered_values'] = False
+
+if st.session_state['Entered_values'] == True:
+    weights = st.session_state['weights']
+    investment = st.session_state['investment']
+    total_investment = st.session_state['Total_investment']
+    
+    combined_csv = data_list(options, weights)
+    
+    if st.session_state['show_Analysis'] == False:
+        if(st.button("Show Complete Analysis")):
+            st.session_state['show_Analysis'] = True
+    if st.session_state['show_Analysis'] == True:
+        complete_analysis(combined_csv, total_investment)
                 
-            if(st.button("Re-Enter Weights & initial invetment")):
-                st.session_state['Entered_values'] = False
-    except:    
-        print("Waiting")
-
-if st.session_state['show_investments']:
-    try:  
-        if st.session_state['Entered_values'] == False:
-            get_investment(options)
             
-        if st.session_state['Entered_values'] == True:
-            st.write(st.session_state['investment'])
-            st.write("Total investment", st.session_state['Total_investment'])
-            
-            investment = st.session_state['investment']
-            total_investment = st.session_state['Total_investment']
-            combined_csv = merged_csv(options, investment)
-            roi = calc_roi(combined_csv, total_investment)
-            st.write(f"ROI: {roi}")
-            
-            if st.session_state['show_Analysis'] == False:
-                if(st.button("Show Complete Analysis")):
-                    st.session_state['show_Analysis'] = True
-            if st.session_state['show_Analysis'] == True:
-                complete_analysis(combined_csv, total_investment)
-                
-            if(st.button("Re-Enter invetment amount")):
-                st.session_state['Entered_values'] = False
-    except:    
-        print("Waiting")
-
-
+ 
