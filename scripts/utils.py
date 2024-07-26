@@ -604,8 +604,14 @@ def next_page(q, stratergy, i):
         with co6:
             a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay",q[50],q[5]])          
         if st.session_state.button:
-            if st.session_state["Time"] != "WeekDay":
-                daisply(st.session_state['rt'], st.session_state["Time"], st.session_state['i'])
+            if st.session_state["Time"] == "Day":
+                daisply(q[47], st.session_state['Time'] , q[2])
+            elif st.session_state["Time"] == "Month":
+                daisply(q[48], st.session_state['Time'], q[3])    
+            elif st.session_state["Time"] == "Week":
+                daisply(q[49], st.session_state['Time'],q[4])    
+            elif st.session_state["Time"] == "Year":
+                daisply(q[51], st.session_state['Time'], q[6])    
             else:
                 display(q[50], q)
 
