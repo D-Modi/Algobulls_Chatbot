@@ -33,18 +33,46 @@ class customerPLBook_Analysis:
         self.unique_dfs = None
         self.uploaded_file = None
             
-    def customerPLBook_analysis_display(self, Analysis, option):    
+    def customerPLBook_analysis_display(self, Analysis, option):   
+        if 'card' not in st.session_state:
+            st.session_state['card']= "no card" 
+
+        with st.sidebar:
+            st.write ("Choose Display Options")
+            self.Daily = st.checkbox("Daily Analysis.", True)
+            self.Monthly = st.checkbox("Monthly Analysis", False)
+            self.Yearly = st.checkbox("Yearly Analysis", False)
+            self.Weekly = st.checkbox("Weekly Analysis", False)
+            self.Day = st.checkbox("Analysis based on day of week", False)
+            st.write("\n")
+        
+            st.write ("Show Returns For:")
+            self.three_days = st.checkbox("3 Days", False) 
+            self.two_week = st.checkbox("2 Weeks", False) 
+            self.thirty_days = st.checkbox("30 Days", False) 
+            self.six_months = st.checkbox("6 Months", False) 
+            self.one_year = st.checkbox("1 Years", False) 
+            self.Two_years = st.checkbox("2 Years", False) 
+            st.write("\n")
+        
+            st.write ("Show Win Rate For:")
+            self.week = st.checkbox("Last Week", False)
+            self.month= st.checkbox("Last Month", False)
+            self.year= st.checkbox("Last Year", False)
+            self.month6= st.checkbox("Last 6 Months", False)
+            self.quater= st.checkbox("Last Quater", False)
+ 
         daily_returns, monthly_returns, weekday_returns, weekly_returns, yearly_returns = Analysis.analysis()
+        if(option is not None):
+            col1, col2, col3 = st.columns([1, 2, 0.6])
 
-        col1, col2, col3 = st.columns([1, 2, 0.6])
+            with col1:
+                if st.button("Strategy Card"):
+                    st.session_state["card"] = "card"
 
-        with col1:
-            if st.button("Strategy Card"):
-                st.session_state["card"] = "card"
-
-        with col3:
-            if st.button("Return to Analysis"):
-                st.session_state["card"] = "no card"
+            with col3:
+                if st.button("Return to Analysis"):
+                    st.session_state["card"] = "no card"
 
 
         if st.session_state['card'] == "no card":
@@ -61,12 +89,15 @@ class customerPLBook_Analysis:
             }
 
             # Create a DataFrame
-            df = pd.DataFrame(data)
+            df = pd.DataFrame(data)                                                                                                                                                                     
 
             # Display the table
-            st.write(df)
+            st.write(df)   
             st.subheader("Drawdown Curve")
-            st.line_chart(Analysis.csv_data, y='drawdown_pct', x='Day')
+            if(len(Analysis.csv_data)>4000):
+                st.line_chart(Analysis.csv_data[-4000:], y='drawdown_pct', x='Day')
+            else:
+                st.line_chart(Analysis.csv_data, y='drawdown_pct', x='Day')
             data = {
                 "Metric": [
                     "Average Loss per Losing Trade",
@@ -135,7 +166,10 @@ class customerPLBook_Analysis:
                 st.write(f"Win Rate for ***last Quater:*** {row[4][0]}")
 
             st.subheader("Equity Curve")
-            st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
+            if(len(Analysis.csv_data)>4000):
+                st.line_chart(Analysis.csv_data[-4000:], y='equity_curve', x='Day')
+            else:
+                st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
             
             T = [3,30,14,180,365,730]
             row = []
@@ -166,10 +200,11 @@ class customerPLBook_Analysis:
                 self.daisply(weekly_returns, "Week", Analysis)
             if self.Day:
                 self.display(weekday_returns, Analysis)
-
-        if st.session_state['card'] == 'card':
-            q = calc_for_customer_plb(option, Analysis)
-            next_page(q, option, 0)
+                
+        if(option is not None):
+            if st.session_state['card'] == 'card':
+                q = calc_for_customer_plb(option, Analysis)
+                next_page(q, option, 0)
 
     def daisply(self, daily_returns, Quant, Analysis):
         print(Quant)
@@ -282,30 +317,6 @@ class customerPLBook_Analysis:
                 option = option[3:-3]
                 st.write("\n")
             
-                st.write ("Choose Display Options")
-                self.Daily = st.checkbox("Daily Analysis.", True)
-                self.Monthly = st.checkbox("Monthly Analysis", False)
-                self.Yearly = st.checkbox("Yearly Analysis", False)
-                self.Weekly = st.checkbox("Weekly Analysis", False)
-                self.Day = st.checkbox("Analysis based on day of week", False)
-                st.write("\n")
-            
-                st.write ("Show Returns For:")
-                self.three_days = st.checkbox("3 Days", False) 
-                self.two_week = st.checkbox("2 Weeks", False) 
-                self.thirty_days = st.checkbox("30 Days", False) 
-                self.six_months = st.checkbox("6 Months", False) 
-                self.one_year = st.checkbox("1 Years", False) 
-                self.Two_years = st.checkbox("2 Years", False) 
-                st.write("\n")
-            
-                st.write ("Show Win Rate For:")
-                self.week = st.checkbox("Last Week", False)
-                self.month= st.checkbox("Last Month", False)
-                self.year= st.checkbox("Last Year", False)
-                self.month6= st.checkbox("Last 6 Months", False)
-                self.quater= st.checkbox("Last Quater", False)
-
             if option == "Complete Portfolio Analysis":
                 Analysis = StatergyAnalysis(self.df, is_dataframe=1, number=number)
                 st.session_state['card'] = 'no card'

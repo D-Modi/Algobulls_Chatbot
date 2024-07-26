@@ -7,7 +7,10 @@ from  matplotlib.colors import LinearSegmentedColormap
 from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from statistics import mean 
+from dateutil import parser
 
+def parse_dates(date_str):
+    return parser.parse(date_str)
 class StatergyAnalysis:
     
     def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False):
@@ -43,7 +46,7 @@ class StatergyAnalysis:
         self.profit = self.max_profit(self.csv_data)
         self.loss = self.max_profit(self.csv_data, i=4)
         
-    def new_csv(Self, filepath, is_dataframe):
+    def new_csv(self, filepath, is_dataframe=0):
         if is_dataframe == 0:
             data = pd.read_csv(filepath)
         else:
@@ -67,14 +70,15 @@ class StatergyAnalysis:
 
         data = data.dropna(subset=['pnl_absolute'])
         if 'Day' not in data.columns:
-            data['date'] = pd.to_datetime(data['entry_timestamp'], format='mixed')
+            data['date'] = data['entry_timestamp'].apply(parse_dates)
             start = data['date'].iloc[0]
             end = data['date'].iloc[-1]
             if start > end:
                 data = data.iloc[::-1].reset_index(drop=True)    
             data = data.reset_index()
             data = data.drop(columns=['entry_timestamp'])
-
+            #data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M')
+            
             data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
             data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
             data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
@@ -120,9 +124,9 @@ class StatergyAnalysis:
         
         weekday_returns = self.csv_data.groupby('weekday').sum(numeric_only = True)
         weekday_returns = weekday_returns[weekday_returns['pnl_absolute'] != 0]
-        for d in ['Sat', 'Sun']:
-            if d in weekday_returns.index:
-                weekday_returns.drop(d, inplace=True)
+        for day in ['Sat', 'Sun']:
+            if day in weekday_returns.index:
+                weekday_returns.drop(day, inplace=True)
         weekday_returns[['pnl_absolute']]
         self.weekday_returns = weekday_returns[['pnl_absolute']]
 
@@ -135,7 +139,7 @@ class StatergyAnalysis:
         yearly_returns['cum_pnl'] = yearly_returns['pnl_absolute'].cumsum()
         yearly_returns[['pnl_absolute', 'cum_pnl']]
         self.yearly_returns =yearly_returns[['pnl_absolute', 'cum_pnl']]
-
+        print(f"IN Strategy Analysis: {len(self.csv_data)}, {len(daily_analysis)}" )
         return daily_analysis, monthly_analysis, weekday_returns, weekly_returns, yearly_returns   
 
     def max_profit(self, returns, i=1):
