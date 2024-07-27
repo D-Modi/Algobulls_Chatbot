@@ -7,28 +7,11 @@ from stratrgy_analysis import StatergyAnalysis
 from dateutil import parser
 from customerPLBook_analysis import customerPLBook_Analysis
 from calculations import calc
-
-if 'show_investments' not in st.session_state:
-    st.session_state['show_investments'] = False 
-if 'show_weights' not in st.session_state:
-    st.session_state['show_weights'] = False
-if 'show_Analysis' not in st.session_state:
-    st.session_state['show_Analysis'] = False
-if 'Entered_values' not in st.session_state:
-    st.session_state['Entered_values'] = False
-if 'investment' not in st.session_state:
-    st.session_state['investment'] = None
-if 'weights' not in st.session_state:
-    st.session_state['weights'] = None
-if 'Total_investment' not in st.session_state:
-    st.session_state['Total_investment'] = None
     
 def set_page_config():
     if 'page_config_set' not in st.session_state:
         st.set_page_config(layout="wide")
         st.session_state['page_config_set'] = True
-        
-set_page_config()
 
 def parse_dates(date_str):
     return parser.parse(date_str)
@@ -156,55 +139,63 @@ def complete_analysis(data, total_investment):
     Analysis = StatergyAnalysis(data, is_dataframe=1, number=total_investment, customerPLBook=True)
     obj =  customerPLBook_Analysis()
     obj.customerPLBook_analysis_display(Analysis, option=None)
+    
+def run_optimize():       
+    set_page_config()
+    Files = get_files()
+    options = st.multiselect(
+        "Selet Trading Stratergies",
+        Files)
+    
+    col1, col2, col3 = st.columns([1.1,1.9,11])
+    with col1:
+        if st.session_state['show_investments'] == False and  st.session_state['Entered_values'] == False:
+            if st.button("Enter Weights"):
+                st.session_state['show_weights'] = True
+                
+    with col2:
+        if  st.session_state['show_weights'] == False and st.session_state['show_investments'] ==False and st.session_state['Entered_values'] == False: 
+            if st.button("Enter Investment Amounts"):
+                st.session_state['show_investments'] = True
 
-Files = get_files()
-
-options = st.multiselect(
-    "Selet Trading Stratergies",
-    Files)
-
-if st.session_state['show_investments'] == False and  st.session_state['Entered_values'] == False:
-    if st.button("Enter Weights"):
-        st.session_state['show_weights'] = True
-
-if  st.session_state['show_weights'] == False and  st.session_state['Entered_values'] == False: 
-    if st.button("Enter Investment Amounts"):
-        st.session_state['show_investments'] = True
-
-if st.session_state['show_weights']:
-    if st.session_state['Entered_values'] == False:
-        get_weights(options)
-        
-    if st.session_state['Entered_values'] == True:
-        st.write(st.session_state['weights'])
-        st.write("Total investment", st.session_state['Total_investment'])
-        
-        if(st.button("Re-Enter Weights & initial invetment")):
-            st.session_state['Entered_values'] = False
-
-if st.session_state['show_investments']: 
-    if st.session_state['Entered_values'] == False:
-        get_investment(options)
-        
-    if st.session_state['Entered_values'] == True:
-        st.write(st.session_state['investment'])
-        st.write("Total investment", st.session_state['Total_investment'])
+    if st.session_state['show_investments'] ==True: 
+            if st.button("Enter Investment Amounts", key = "col1"):
+                st.session_state['show_investments'] = True
+                
+    if st.session_state['show_weights']:
+        if st.session_state['Entered_values'] == False:
+            get_weights(options)
             
-        if(st.button("Re-Enter invetment amount")):
-            st.session_state['Entered_values'] = False
+        if st.session_state['Entered_values'] == True:
+            st.write(st.session_state['weights'])
+            st.write("Total investment", st.session_state['Total_investment'])
+            
+            if(st.button("Re-Enter Weights & initial invetment")):
+                st.session_state['Entered_values'] = False
 
-if st.session_state['Entered_values'] == True:
-    weights = st.session_state['weights']
-    investment = st.session_state['investment']
-    total_investment = st.session_state['Total_investment']
-    
-    combined_csv = data_list(options, weights)
-    
-    if st.session_state['show_Analysis'] == False:
-        if(st.button("Show Complete Analysis")):
-            st.session_state['show_Analysis'] = True
-    if st.session_state['show_Analysis'] == True:
-        complete_analysis(combined_csv, total_investment)
+    if st.session_state['show_investments']: 
+        if st.session_state['Entered_values'] == False:
+            get_investment(options)
+            
+        if st.session_state['Entered_values'] == True:
+            st.write(st.session_state['investment'])
+            st.write("Total investment", st.session_state['Total_investment'])
+                
+            if(st.button("Re-Enter invetment amount")):
+                st.session_state['Entered_values'] = False
+
+    if st.session_state['Entered_values'] == True:
+        weights = st.session_state['weights']
+        investment = st.session_state['investment']
+        total_investment = st.session_state['Total_investment']
+        
+        combined_csv = data_list(options, weights)
+        
+        if st.session_state['show_Analysis'] == False:
+            if(st.button("Show Complete Analysis")):
+                st.session_state['show_Analysis'] = True
+        if st.session_state['show_Analysis'] == True:
+            complete_analysis(combined_csv, total_investment)
                 
             
  

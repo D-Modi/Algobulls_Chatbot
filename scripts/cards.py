@@ -2,6 +2,7 @@ import streamlit as st
 from streamlit.errors import StreamlitAPIException
 from customerPLBook_analysis import customerPLBook_Analysis
 from utils import *
+from optimize import run_optimize
 
 if 'sidebar' not in st.session_state:
     st.session_state['sidebar']= "Home" 
@@ -25,6 +26,20 @@ if 'warning_message' not in st.session_state:
     st.session_state.warning_message = ""
 if 'new_q' not in st.session_state:
     st.session_state['new_q'] = None
+if 'show_investments' not in st.session_state:
+    st.session_state['show_investments'] = False 
+if 'show_weights' not in st.session_state:
+    st.session_state['show_weights'] = False
+if 'show_Analysis' not in st.session_state:
+    st.session_state['show_Analysis'] = False
+if 'Entered_values' not in st.session_state:
+    st.session_state['Entered_values'] = False
+if 'investment' not in st.session_state:
+    st.session_state['investment'] = None
+if 'weights' not in st.session_state:
+    st.session_state['weights'] = None
+if 'Total_investment' not in st.session_state:
+    st.session_state['Total_investment'] = None
 
 set_page_config()
 
@@ -36,7 +51,7 @@ def CustomerPLBook(customerPLBook_analysis_streamlit):
 
 
 customerPLBook_analysis_streamlit = customerPLBook_Analysis()
-col1, col2 , col3= st.columns([1,3,10])
+col1, col2 , col3,col4= st.columns([1,2,1.5,9.5])
 with col1:
     if st.button("Home", use_container_width=True):
         if(st.session_state['sidebar'] == "Home"):
@@ -46,11 +61,16 @@ with col1:
             st.session_state['sidebar']="Home"
         
 with col2:
-    if st.button("CustomerPLBook Analysis"):
+    if st.button("CustomerPLBook Analysis", use_container_width=True):
         st.session_state['sidebar']="CustomerPLBook"
+
+with col3:  
+    if(st.button("Portfolio Optimiation", use_container_width=True)):
+        st.session_state['sidebar']="PortfolioOptimization"
         
 if st.session_state['sidebar']=="Home":
     home()
 if st.session_state['sidebar']=="CustomerPLBook":
     CustomerPLBook(customerPLBook_analysis_streamlit)
-    
+if st.session_state['sidebar']=="PortfolioOptimization":
+    run_optimize() 
