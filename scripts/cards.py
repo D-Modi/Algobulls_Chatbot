@@ -23,6 +23,8 @@ if 'index' not in st.session_state:
     st.session_state['index'] = None 
 if 'warning_message' not in st.session_state:
     st.session_state.warning_message = ""
+if 'new_q' not in st.session_state:
+    st.session_state['new_q'] = None
 
 set_page_config()
 

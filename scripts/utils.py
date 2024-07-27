@@ -378,6 +378,7 @@ def next_page(q, stratergy, i):
             if entry_date_index != 0 or exit_date_index != len(data) -1 or initial_investment != 150000:
                 data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
                 q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
+                st.session_state['new_q'] = q
     with subcol3:
         st.write("")
 
@@ -604,6 +605,8 @@ def next_page(q, stratergy, i):
         with co6:
             a = st.button("Weekday", use_container_width=True, on_click=click_button_disp, args=["WeekDay",q[50],q[5]])          
         if st.session_state.button:
+            if st.session_state['new_q'] is not None:
+                q = st.session_state['new_q']
             if st.session_state["Time"] == "Day":
                 daisply(q[47], st.session_state['Time'] , q[2])
             elif st.session_state["Time"] == "Month":
