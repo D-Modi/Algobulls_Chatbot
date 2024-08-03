@@ -13,8 +13,8 @@ def parse_dates(date_str):
     return parser.parse(date_str)
 class StatergyAnalysis:
     
-    def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False):
-        self.csv_data = self.new_csv(csv_data , is_dataframe)
+    def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False, replaced=False):
+        self.csv_data = self.new_csv(csv_data , is_dataframe, replaced)
         self.initial_investment = number
         self.daily_returnts = None
         self.monthly_returns = None
@@ -46,7 +46,7 @@ class StatergyAnalysis:
         self.profit = self.max_profit(self.csv_data)
         self.loss = self.max_profit(self.csv_data, i=4)
         
-    def new_csv(self, filepath, is_dataframe=0):
+    def new_csv(self, filepath, is_dataframe=0, replaced=False):
         if is_dataframe == 0:
             data = pd.read_csv(filepath)
         else:
@@ -66,11 +66,12 @@ class StatergyAnalysis:
             data.rename(columns={'Drawdown_%': 'drawdown_percentage'}, inplace=True)
         if 'Drawdown %' in data.columns:
             data.rename(columns={'Drawdown %': 'drawdown_percentage'}, inplace=True)
-        data['entry_transaction_type'] = data['entry_transaction_type'].replace({'BUY': 0, 'SELL': 1})
+        if not replaced:
+            data['entry_transaction_type'] = data['entry_transaction_type'].replace({'BUY': 0, 'SELL': 1})
 
         data = data.dropna(subset=['pnl_absolute'])
         if 'Day' not in data.columns:
-            data['date'] = data['entry_timestamp'].apply(parse_dates)
+            data['date'] = pd.to_datetime(data['entry_timestamp'])
             start = data['date'].iloc[0]
             end = data['date'].iloc[-1]
             if start > end:
@@ -89,7 +90,8 @@ class StatergyAnalysis:
             data['Week'] = data['Week'].dt.strftime('%Y-%U')
             data['Month'] = data['Month'].dt.strftime('%Y-%m')
             data['Year'] = data['Year'].dt.strftime('%Y')
-            data['weekday'] = data['weekday'].dt.strftime('%a')
+            data['weekday'] = data['weekday'].dt.strftime('%a') 
+            data = data[['date', 'Day', 'Month','Week','weekday', 'Year', 'entry_transaction_type', 'pnl_absolute', 'pnl_cumulative_absolute','equity_curve', 'drawdown_percentage']]
         return data
         
     def daily_equity_Curve(self, customerPLBook=False):
@@ -140,7 +142,7 @@ class StatergyAnalysis:
         yearly_returns['cum_pnl'] = yearly_returns['pnl_absolute'].cumsum()
         yearly_returns[['pnl_absolute', 'cum_pnl']]
         self.yearly_returns =yearly_returns[['pnl_absolute', 'cum_pnl']]
-        print(f"IN Strategy Analysis: {len(self.csv_data)}, {len(daily_analysis)}" )
+           
         return daily_analysis, monthly_analysis, weekday_returns, weekly_returns, yearly_returns   
 
     def max_profit(self, returns, i=1):
@@ -186,7 +188,7 @@ class StatergyAnalysis:
         return positive_counts.max()
     
     def win_rate(self, daily_returns):
-        wins = daily_returns[daily_returns['pnl_absolute']>0]   
+        wins = daily_returns[round(daily_returns['pnl_absolute'] , 2) >0]   
         return round(len(wins)/len(daily_returns)*100, 2)
     
 #Another Useless function
@@ -268,13 +270,13 @@ class StatergyAnalysis:
         return round(ROI.values[0], 2), round(ROI_perct, 2)
 
     def num_profit(self, returns):
-        return sum(returns['pnl_absolute'] > 0)
+        return sum(round(returns['pnl_absolute'], 2) > 0)
 
     def num_loss(self, returns, i):
         if i == -1:
-            return sum(returns['pnl_absolute'] < 0)
+            return sum(round(returns['pnl_absolute'], 2) < 0)
         else:
-            return sum(returns['pnl_absolute'] >0)
+            return sum(round(returns['pnl_absolute'], 2) >0)
         
 # try to remove this function
     def trading_num(self, returns):

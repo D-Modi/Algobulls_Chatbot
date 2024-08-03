@@ -6,15 +6,13 @@ import glob
 from stratrgy_analysis import StatergyAnalysis
 from dateutil import parser
 from customerPLBook_analysis import customerPLBook_Analysis
-from calculations import calc
-    
+from calculations import *
+from utils import *
+
 def set_page_config():
     if 'page_config_set' not in st.session_state:
         st.set_page_config(layout="wide")
         st.session_state['page_config_set'] = True
-
-def parse_dates(date_str):
-    return parser.parse(date_str)
 
 def get_files():
     path = "files/StrategyBacktestingPLBook-*.csv"
@@ -26,7 +24,7 @@ def get_files():
     
     return Files
 
-def data_list(options, weights): 
+def data_list(options, investment): 
     data = []
     dfs = {}
     head = ['Strategy_Code', 'ROI%', 'HIT Ratio', 'Profit Factor']
@@ -34,18 +32,17 @@ def data_list(options, weights):
     for i in options:
         csv_path = f"files/StrategyBacktestingPLBook-{i}.csv"
         row = calc(csv_path)
-        data.append([i, row[19][1], row[18], row[20]])
+        data.append([i, row[19][1], row[18], row[20]])  
         dfs[i] = row[1]
-        
-    portfolio = merged_csv(options, dfs, weights)
-    Analysis = calc(portfolio, is_dataframe=1, filename="Portfolio")
+
+    portfolio = merged_csv(options, dfs, investment)
+    Comp_Analysis = StatergyAnalysis(portfolio, is_dataframe=1, number=st.session_state['Total_investment'], customerPLBook=True, replaced=True)
+    Analysis = calc_for_customer_plb("portfolio", Comp_Analysis)
     data.append([Analysis[0], Analysis[19][1], Analysis[18], Analysis[20]])
-    
     df = pd.DataFrame(data, columns=head) 
     df.set_index("Strategy_Code", inplace=True)
-    
     st.write(df)
-    return portfolio
+    return Comp_Analysis
     
 def calc_amt(options, weights, total_investment):
     investment = {}
@@ -92,7 +89,7 @@ def get_weights(options):
         weights[strategy] = number
         
     if st.button("submit", key= "weights_bt"):
-        st.session_state['Entered_values'] = True
+        st.session_state['Entered_values'] = "Weights"
         for strategy in options:
             weights[strategy] = weights[strategy]/sum_weights
         calc_amt(options, weights, investment)
@@ -113,89 +110,100 @@ def get_investment(options):
         amount[i] = number
     
     if st.button("submit", key= "investment_bt"):
-        st.session_state['Entered_values'] = True
+        st.session_state['Entered_values'] = "Investment"
         calc_weights(options, amount, total_investment)
     
-def merged_csv(options, dfs, weight):
+def merged_csv(options, dfs, investment):
     data = pd.DataFrame()
     
     for i in options:
         df = dfs[i]
-        df['pnl_absolute'] = df['pnl_absolute'] * weight[i]
+        initial_investment = 150000
+        df['pnl_absolute'] = round(df['pnl_absolute']/initial_investment*investment[i] , 2)
         
         if len(data) == 0:  
             data = df
         else:
             data = pd.concat([df, data], axis=0) 
     
-    data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M:%S')
-    data.sort_values(by='date')
-    data.reset_index(inplace=True)
-    data['pnl_absolute_cumulative'] = data['pnl_absolute'].cumsum()
-    
+    data = data.sort_values(by=['date']).reset_index(drop=True)
     return data
 
-def complete_analysis(data, total_investment):
-    Analysis = StatergyAnalysis(data, is_dataframe=1, number=total_investment, customerPLBook=True)
+def complete_analysis(Analysis):
     obj =  customerPLBook_Analysis()
     obj.customerPLBook_analysis_display(Analysis, option=None)
     
-def run_optimize():       
-    set_page_config()
-    Files = get_files()
-    options = st.multiselect(
-        "Selet Trading Stratergies",
-        Files)
+def reset():    
+    st.session_state['Total_investment'] = None
+    st.session_state['weights'] = None
+    st.session_state['investment'] = None
+    st.session_state['Entered_values'] = None  
+    st.session_state['show_Analysis'] = False
+    st.session_state['show_weights'] = False
+    st.session_state['show_investments'] = False 
+    st.session_state['options'] = []
+    st.session_state.clicked = False  
     
-    col1, col2, col3 = st.columns([1.1,1.9,11])
-    with col1:
-        if st.session_state['show_investments'] == False and  st.session_state['Entered_values'] == False:
-            if st.button("Enter Weights"):
-                st.session_state['show_weights'] = True
-                
-    with col2:
-        if  st.session_state['show_weights'] == False and st.session_state['show_investments'] ==False and st.session_state['Entered_values'] == False: 
-            if st.button("Enter Investment Amounts"):
-                st.session_state['show_investments'] = True
-
-    if st.session_state['show_investments'] ==True: 
-            if st.button("Enter Investment Amounts", key = "col1"):
-                st.session_state['show_investments'] = True
-                
-    if st.session_state['show_weights']:
-        if st.session_state['Entered_values'] == False:
-            get_weights(options)
-            
-        if st.session_state['Entered_values'] == True:
-            st.write(st.session_state['weights'])
-            st.write("Total investment", st.session_state['Total_investment'])
-            
-            if(st.button("Re-Enter Weights & initial invetment")):
-                st.session_state['Entered_values'] = False
-
-    if st.session_state['show_investments']: 
-        if st.session_state['Entered_values'] == False:
-            get_investment(options)
-            
-        if st.session_state['Entered_values'] == True:
-            st.write(st.session_state['investment'])
-            st.write("Total investment", st.session_state['Total_investment'])
-                
-            if(st.button("Re-Enter invetment amount")):
-                st.session_state['Entered_values'] = False
-
-    if st.session_state['Entered_values'] == True:
-        weights = st.session_state['weights']
-        investment = st.session_state['investment']
-        total_investment = st.session_state['Total_investment']
+def run_optimize(): 
+    set_page_config()
+    if not st.session_state.clicked:      
+        home()
+    else:
+        options = st.session_state['options']
+        st.write("Strategies Seleted", options)
         
-        combined_csv = data_list(options, weights)
-        
-        if st.session_state['show_Analysis'] == False:
-            if(st.button("Show Complete Analysis")):
-                st.session_state['show_Analysis'] = True
-        if st.session_state['show_Analysis'] == True:
-            complete_analysis(combined_csv, total_investment)
+        col1, col2, col3 = st.columns([1.5,3,9.5])
+        with col1:
+            if st.session_state['show_investments'] == False and  st.session_state['Entered_values'] is None:
+                if st.button("Enter Weights"):
+                    st.session_state['show_weights'] = True
+                    
+        with col2:
+            if  st.session_state['show_weights'] == False and st.session_state['show_investments'] ==False and st.session_state['Entered_values'] is None: 
+                if st.button("Enter Investment Amounts"):
+                    st.session_state['show_investments'] = True
+
+        if st.session_state['show_investments'] ==True: 
+                if st.button("Enter Investment Amounts", key = "col1"):
+                    st.session_state['show_investments'] = True
+                    
+        if st.session_state['show_weights']:
+            if st.session_state['Entered_values'] is None:
+                get_weights(options)
+                
+            if st.session_state['Entered_values'] is not None:
+                st.write(st.session_state['weights'])
+                st.write("Total investment", st.session_state['Total_investment'])
+                
+                if(st.button("Re-Enter Weights & initial invetment")):
+                    st.session_state['Entered_values'] = None
+
+        if st.session_state['show_investments']: 
+            if st.session_state['Entered_values'] is None:
+                get_investment(options)
+                
+            if st.session_state['Entered_values'] is not None:
+                st.write(st.session_state['investment'])
+                st.write("Total investment", st.session_state['Total_investment'])
+                    
+                if(st.button("Re-Enter invetment amount")):
+                    st.session_state['Entered_values'] = None
+
+        if st.session_state['Entered_values'] is not None:
+            weights = st.session_state['weights']
+            investment = st.session_state['investment']
+            total_investment = st.session_state['Total_investment']
+            
+            portfolio_Analysis = data_list(options, investment)
+            
+            if st.session_state['show_Analysis'] == False:
+                if(st.button("Show Complete Analysis")):
+                    st.session_state['show_Analysis'] = True
+            if st.session_state['show_Analysis'] == True:
+                complete_analysis(portfolio_Analysis)
+                
+        with st.sidebar:
+            st.button("Re-Selet Srategies", on_click=reset)
                 
             
  

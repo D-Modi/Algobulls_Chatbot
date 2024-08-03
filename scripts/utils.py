@@ -14,6 +14,7 @@ import seaborn as sn
 import re
 import glob
 
+
 warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
 def set_page_config():
     if 'page_config_set' not in st.session_state:
@@ -41,6 +42,13 @@ def click_button_arg(a,b,c):
     st.session_state['ana'] = a
     st.session_state['stra'] = b
     st.session_state['index'] = c
+    
+def click_button_done(): 
+    if(len(st.session_state['options']) == 0):
+        st.write("No strategies Seleted")  
+    else:       
+        st.session_state.clicked = True
+        return
 
 #@st.cache_data(show_spinner=False, ttl=86400)
 def get_image_base64(image_path):
@@ -764,9 +772,19 @@ def home():
                     tile.markdown(head_, unsafe_allow_html=True)
                     tile.write(disp, unsafe_allow_html=True)
                     tile.write("\n")
-                    tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[q, stratergy, i])
+                    if st.session_state['sidebar']=="Home":
+                        tile.button("Execute", key=stratergy, use_container_width=True, on_click=click_button_arg, args=[q, stratergy, i])
+                    if st.session_state['sidebar']=="PortfolioOptimization":
+                        on = tile.toggle("Add", key=f"add_{stratergy}")
+                        if on:  
+                            if not stratergy in st.session_state['options']:
+                                st.session_state['options'].append(stratergy)
+                        else:
+                            if stratergy in st.session_state['options']:
+                                st.session_state['options'].remove(stratergy)
+                        # tile.button("Add", key=f"add_{stratergy}", use_container_width=True, on_click=click_button_add, args=[stratergy])
                 
-                else:
+                elif st.session_state['sidebar']=="Home":
                     tile = col.container(height=410, border=True)
                     centered_red_bold_large_text = """
                     <div style='display: flex; justify-content: center;'>
@@ -811,10 +829,13 @@ def home():
 
                     tile.write("\n")
                     break
-
+                
+        if st.session_state['sidebar']=="PortfolioOptimization":
+            st.button("Done", on_click=click_button_done)
+                     
     if st.session_state.clicked:
-        next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
-
+        
         if st.session_state['sidebar']=="Home":
+            next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
             with st.sidebar:
                 st.button("Return to cards", on_click=click_button_return)

@@ -167,9 +167,9 @@ class customerPLBook_Analysis:
 
             st.subheader("Equity Curve")
             if(len(Analysis.csv_data)>4000):
-                st.line_chart(Analysis.csv_data[-4000:], y='equity_curve', x='Day')
+                st.line_chart(Analysis.csv_data[-4000:], y='equity_calculated')
             else:
-                st.line_chart(Analysis.csv_data, y='equity_curve', x='Day')
+                st.line_chart(Analysis.csv_data, y='equity_calculated')
             
             T = [3,30,14,180,365,730]
             row = []

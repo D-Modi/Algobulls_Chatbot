@@ -2,7 +2,7 @@ import streamlit as st
 from streamlit.errors import StreamlitAPIException
 from customerPLBook_analysis import customerPLBook_Analysis
 from utils import *
-from optimize import run_optimize
+from optimize import run_optimize, reset       
 
 if 'sidebar' not in st.session_state:
     st.session_state['sidebar']= "Home" 
@@ -33,13 +33,15 @@ if 'show_weights' not in st.session_state:
 if 'show_Analysis' not in st.session_state:
     st.session_state['show_Analysis'] = False
 if 'Entered_values' not in st.session_state:
-    st.session_state['Entered_values'] = False
+    st.session_state['Entered_values'] = None
 if 'investment' not in st.session_state:
     st.session_state['investment'] = None
 if 'weights' not in st.session_state:
     st.session_state['weights'] = None
 if 'Total_investment' not in st.session_state:
     st.session_state['Total_investment'] = None
+if 'options' not in st.session_state:
+    st.session_state['options'] = None
 
 set_page_config()
 
@@ -51,7 +53,7 @@ def CustomerPLBook(customerPLBook_analysis_streamlit):
 
 
 customerPLBook_analysis_streamlit = customerPLBook_Analysis()
-col1, col2 , col3,col4= st.columns([1,2,1.5,9.5])
+col1, col2 , col3,col4= st.columns([1,2.5,3,8.5])
 with col1:
     if st.button("Home", use_container_width=True):
         if(st.session_state['sidebar'] == "Home"):
@@ -65,7 +67,8 @@ with col2:
         st.session_state['sidebar']="CustomerPLBook"
 
 with col3:  
-    if(st.button("Portfolio Optimiation", use_container_width=True)):
+    if(st.button("Portfolio Optimiation")):
+        reset()
         st.session_state['sidebar']="PortfolioOptimization"
         
 if st.session_state['sidebar']=="Home":
@@ -73,4 +76,5 @@ if st.session_state['sidebar']=="Home":
 if st.session_state['sidebar']=="CustomerPLBook":
     CustomerPLBook(customerPLBook_analysis_streamlit)
 if st.session_state['sidebar']=="PortfolioOptimization":
-    run_optimize() 
+    run_optimize()
+    
