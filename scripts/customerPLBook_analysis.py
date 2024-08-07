@@ -167,7 +167,7 @@ class customerPLBook_Analysis:
 
             st.subheader("Equity Curve")
             if(len(Analysis.csv_data)>4000):
-                st.line_chart(Analysis.csv_data[-4000:], y='equity_calculated')
+                st.line_chart(Analysis.csv_data, y='equity_calculated')
             else:
                 st.line_chart(Analysis.csv_data, y='equity_calculated')
             

@@ -13,7 +13,7 @@ import numpy as np
 import seaborn as sn
 import re
 import glob
-
+from stratrgy_analysis import StatergyAnalysis
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
 def set_page_config():
@@ -689,24 +689,31 @@ def home():
                                 uploaded_file = st.file_uploader("Choose a CSV file", type="csv", key=f"append{i}")        
                                 if st.button("Submit", key=f"append_{stratergy}"):
                                         st.session_state.warning_message = ""
-                                        if uploaded_file is not None:
-                                            csv_data = pd.read_csv(uploaded_file)
+                                        if uploaded_file is not None:       
+                                            data = pd.read_csv(uploaded_file)
+                                            csv_data = StatergyAnalysis.new_csv(data, is_dataframe=1)  
+                                            start_date = csv_data['date'].iat[0]    
+                                            last_date = csv_data['date'].iat[-1]  
                                             original_data = pd.read_csv(csv_path)
-                                            try:
-                                                csv_data = csv_data[original_data.columns]
-                                                result = pd.concat([original_data, csv_data], ignore_index=True)
-                                                result.to_csv(csv_path)
-
-                                            except:
+                                            print( start_date, last_date, q[1]['date'].iat[-1])
+                                            if True:
+                                            #if(start_date > q[1]['date'].iat[-1] and last_date > q[1]['date'].iat[-1]):  
                                                 try:
-                                                    original_data = original_data[csv_data.columns]
-                                                    result = pd.concat([original_data, csv_data], ignore_index=True)
+                                                    csv_data = csv_data[original_data.columns]
+                                                    result = pd.concat([original_data, data], ignore_index=True)
                                                     result.to_csv(csv_path)
+
                                                 except:
-                                                    st.session_state.warning_message = "**Error:** Columns of new csv don't match with previous one"
+                                                    try:
+                                                        original_data = original_data[csv_data.columns]
+                                                        result = pd.concat([original_data, data], ignore_index=True)
+                                                        result.to_csv(csv_path)
+                                                    except: 
+                                                        st.session_state.warning_message = "**Error:** Columns of new csv don't match with previous one"
+                                            else:  
+                                                st.session_state.warning_message = "**Error** Data in uploaded csv file preceeds last date in previous csv"
                                             st.rerun() 
-
-
+                                            
                         with col4:
                             delete_button = st.button("Delete", key=f"delete{i}")
                             if delete_button:

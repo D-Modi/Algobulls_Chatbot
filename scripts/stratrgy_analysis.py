@@ -9,12 +9,28 @@ from dateutil.relativedelta import relativedelta
 from statistics import mean 
 from dateutil import parser
 
-def parse_dates(date_str):
-    return parser.parse(date_str)
+def parse_datetime(date_str):
+    formats = [
+        "%d-%m-%Y %H:%M",
+        "%d-%m-%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%d/%m/%Y %H:%M:%S",
+        "%Y-%m-%d %H:%M",
+        "%Y-%m-%d %H:%M:%S",
+        "%Y/%m/%d %H:%M",
+        "%Y/%m/%d %H:%M:%S"
+    ]
+    for fmt in formats:
+        try:
+            return datetime.strptime(str(date_str), fmt)
+        except ValueError:
+            continue
+    raise ValueError(f"Date format not recognized: {date_str}")
+    
 class StatergyAnalysis:
     
     def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False, replaced=False):
-        self.csv_data = self.new_csv(csv_data , is_dataframe, replaced)
+        self.csv_data = StatergyAnalysis.new_csv(csv_data , is_dataframe, replaced)
         self.initial_investment = number
         self.daily_returnts = None
         self.monthly_returns = None
@@ -46,7 +62,8 @@ class StatergyAnalysis:
         self.profit = self.max_profit(self.csv_data)
         self.loss = self.max_profit(self.csv_data, i=4)
         
-    def new_csv(self, filepath, is_dataframe=0, replaced=False):
+    @classmethod
+    def new_csv(cls, filepath, is_dataframe=0, replaced=False):
         if is_dataframe == 0:
             data = pd.read_csv(filepath)
         else:
@@ -71,16 +88,15 @@ class StatergyAnalysis:
 
         data = data.dropna(subset=['pnl_absolute'])
         if 'Day' not in data.columns:
-            data['date'] = pd.to_datetime(data['entry_timestamp'])
+            data['date'] = data['entry_timestamp'].apply(parse_datetime)
             start = data['date'].iloc[0]
             end = data['date'].iloc[-1]
             if start > end:
                 data = data.iloc[::-1].reset_index(drop=True)    
             data = data.reset_index()
             data = data.drop(columns=['entry_timestamp'])
-            #data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M')
             
-            data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
+            data['Day'] = pd.to_datetime(data.date,format = '%Y-%m-%d')
             data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
             data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
             data['Year'] = pd.to_datetime(data.date,format = '%Y-%m')
@@ -90,8 +106,10 @@ class StatergyAnalysis:
             data['Week'] = data['Week'].dt.strftime('%Y-%U')
             data['Month'] = data['Month'].dt.strftime('%Y-%m')
             data['Year'] = data['Year'].dt.strftime('%Y')
-            data['weekday'] = data['weekday'].dt.strftime('%a') 
-            data = data[['date', 'Day', 'Month','Week','weekday', 'Year', 'entry_transaction_type', 'pnl_absolute', 'pnl_cumulative_absolute','equity_curve', 'drawdown_percentage']]
+            data['weekday'] = data['weekday'].dt.strftime('%a')
+            data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M') 
+            
+            data = data[['strategy', 'date', 'Day', 'Month','Week','weekday', 'Year', 'entry_transaction_type', 'pnl_absolute', 'pnl_cumulative_absolute','equity_curve', 'drawdown_percentage']]
         return data
         
     def daily_equity_Curve(self, customerPLBook=False):

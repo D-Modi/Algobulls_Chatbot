@@ -42,6 +42,7 @@ def data_list(options, investment):
     df = pd.DataFrame(data, columns=head) 
     df.set_index("Strategy_Code", inplace=True)
     st.write(df)
+
     return Comp_Analysis
     
 def calc_amt(options, weights, total_investment):
@@ -124,12 +125,11 @@ def merged_csv(options, dfs, investment):
         if len(data) == 0:  
             data = df
         else:
-            data = pd.concat([df, data], axis=0) 
-    
-    data = data.sort_values(by=['date']).reset_index(drop=True)
+            data = pd.concat([df, data])
+    data = data.sort_values(by='date')
     return data
 
-def complete_analysis(Analysis):
+def complete_analysis(Analysis):   
     obj =  customerPLBook_Analysis()
     obj.customerPLBook_analysis_display(Analysis, option=None)
     
