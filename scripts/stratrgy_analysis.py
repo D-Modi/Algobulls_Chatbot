@@ -27,6 +27,20 @@ def parse_datetime(date_str):
             continue
     raise ValueError(f"Date format not recognized: {date_str}")
     
+def parse_data(datestring):
+    try: 
+        parsed_data = parser.parse (datestring)
+        return parsed_data
+    except ValueError:
+        return None
+    
+def format_date(date_string, desired_fornat='%d-%m-%Y'):
+    parsed_data = parse_data(date_string)
+    if parsed_data:
+        return parsed_data.strftime(desired_fornat)
+    return None
+    
+
 class StatergyAnalysis:
     
     def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False, replaced=False):
@@ -88,7 +102,9 @@ class StatergyAnalysis:
 
         data = data.dropna(subset=['pnl_absolute'])
         if 'Day' not in data.columns:
-            data['date'] = data['entry_timestamp'].apply(parse_datetime)
+           # data['date'] = data['entry_timestamp'].apply(parse_datetime)
+            data['entry_timestamp'] = data['entry_timestamp'].apply(lambda x: parse_data(x))
+            data['date'] = pd.to_datetime(data['entry_timestamp'])
             start = data['date'].iloc[0]
             end = data['date'].iloc[-1]
             if start > end:
