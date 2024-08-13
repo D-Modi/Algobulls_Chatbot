@@ -38,10 +38,11 @@ def main():
         with st.form(key='add_user_form'):
             email_id = st.text_input("Email_ID")
             password = st.text_input("Password", type="password")
-            add_cards = st.selectbox("Add Cards", dropdown_options)
-            view_cards = st.selectbox("View Cards", dropdown_options)
-            use_combination = st.selectbox("Use Combination", dropdown_options)
-            user_PL_book = st.selectbox("User PL Book", dropdown_options)
+            add_cards = st.selectbox("Add Cards", dropdown_options, index=1)
+            view_cards = st.selectbox("View Cards", dropdown_options, index=1)
+            use_combination = st.selectbox("Use Combination", dropdown_options, index=1)
+            user_PL_book = st.selectbox("User PL Book", dropdown_options, index=1)
+            admin = st.selectbox("Give admin access", dropdown_options, index=1)
 
             submit_button = st.form_submit_button("Add User")
             if submit_button:
@@ -56,7 +57,8 @@ def main():
                             'add_cards': add_cards,
                             'view_cards': view_cards,
                             'use_combination': use_combination,
-                            'user_PL_book': user_PL_book
+                            'user_PL_book': user_PL_book,
+                            'admin': admin
                         }
                         user_data = user_data.append(new_user, ignore_index=True)
                         save_user_data(user_data)
@@ -81,6 +83,8 @@ def main():
                 use_combination = st.selectbox("Use Combination", dropdown_options, index=index)
                 index = dropdown_options.index(user_details['user_PL_book'])
                 user_PL_book = st.selectbox("User PL Book", dropdown_options, index=index)
+                index = dropdown_options.index(user_details['admin'])
+                admin = st.selectbox("Give admin access", dropdown_options, index=index)
                 
                 submit_button = st.form_submit_button("Update User")
                 if submit_button:
@@ -90,6 +94,7 @@ def main():
                     user_data.at[index, 'view_cards'] = view_cards
                     user_data.at[index, 'use_combination'] = use_combination
                     user_data.at[index, 'user_PL_book'] = user_PL_book
+                    user_data.at[index, 'admin'] = admin
                     save_user_data(user_data)
                     st.success("User updated successfully!")
                     st.experimental_rerun()
