@@ -9,8 +9,20 @@ from dateutil.relativedelta import relativedelta
 from statistics import mean 
 from dateutil import parser
 
-def parse_dates(date_str):
-    return parser.parse(date_str)
+def parse_data(datestring):
+    try: 
+        parsed_data = parser.parse (datestring)
+        return parsed_data
+    except ValueError:
+        return None
+    
+def format_date(date_string, desired_fornat='%d-%m-%Y'):
+    parsed_data = parse_data(date_string)
+    if parsed_data:
+        return parsed_data.strftime(desired_fornat)
+    return None
+    
+
 class StatergyAnalysis:
     
     def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False, replaced=False):
@@ -71,6 +83,7 @@ class StatergyAnalysis:
 
         data = data.dropna(subset=['pnl_absolute'])
         if 'Day' not in data.columns:
+            data['entry_timestamp'] = data['entry_timestamp'].apply(lambda x: parse_data(x))
             data['date'] = pd.to_datetime(data['entry_timestamp'])
             start = data['date'].iloc[0]
             end = data['date'].iloc[-1]
@@ -78,20 +91,27 @@ class StatergyAnalysis:
                 data = data.iloc[::-1].reset_index(drop=True)    
             data = data.reset_index()
             data = data.drop(columns=['entry_timestamp'])
-            #data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M')
+            # data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M')
             
-            data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
-            data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
-            data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
-            data['Year'] = pd.to_datetime(data.date,format = '%Y-%m')
-            data['weekday'] = pd.to_datetime(data.date,format = '%a')
+            # data['Day'] = pd.to_datetime(data.date,format = '%Y-%m')
+            # data['Week'] = pd.to_datetime(data.date,format = '%dd-%m')
+            # data['Month'] = pd.to_datetime(data.date,format = '%Y-%m')
+            # data['Year'] = pd.to_datetime(data.date,format = '%Y-%m')
+            # data['weekday'] = pd.to_datetime(data.date,format = '%a')
             
-            data['Day'] = data['Day'].dt.strftime('%Y-%m-%d')
-            data['Week'] = data['Week'].dt.strftime('%Y-%U')
-            data['Month'] = data['Month'].dt.strftime('%Y-%m')
-            data['Year'] = data['Year'].dt.strftime('%Y')
-            data['weekday'] = data['weekday'].dt.strftime('%a') 
+            # data['Day'] = data['Day'].dt.strftime('%Y-%m-%d')
+            # data['Week'] = data['Week'].dt.strftime('%Y-%U')
+            # data['Month'] = data['Month'].dt.strftime('%Y-%m')
+            # data['Year'] = data['Year'].dt.strftime('%Y')
+            # data['weekday'] = data['weekday'].dt.strftime('%a') 
+            data['Day'] = data['date'].dt.strftime('%Y-%m-%d')
+            data['Week'] = data['date'].dt.strftime('%Y-%U')
+            data['Month'] = data['date'].dt.strftime('%Y-%m')
+            data['Year'] = data['date'].dt.strftime('%Y')
+            data['weekday'] = data['date'].dt.strftime('%a')
             data = data[['date', 'Day', 'Month','Week','weekday', 'Year', 'entry_transaction_type', 'pnl_absolute', 'pnl_cumulative_absolute','equity_curve', 'drawdown_percentage']]
+
+            data.to_csv('/Users/sparsh/Desktop/Algobulls_Chatbot/temp_files/temp.csv')
         return data
         
     def daily_equity_Curve(self, customerPLBook=False):
