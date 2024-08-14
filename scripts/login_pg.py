@@ -10,11 +10,17 @@ def load_user_data(csv_path):
 def check_login(email_id, password, user_data):
     user_row = user_data.loc[user_data['Email_ID'] == email_id]
     if not user_row.empty and user_row['Password'].values[0] == password:
-        return True
-    return False
+        details = {}
+        details['view_cards'] = user_row['view_cards'].values[0]
+        details['use_combination'] = user_row['use_combination'].values[0]
+        details['add_cards'] = user_row['add_cards'].values[0]
+        details['user_PL_book'] = user_row['user_PL_book'].values[0]
+        details['admin'] = user_row['admin'].values[0]
+        return True, details
+    return False, None
 
 # Streamlit app
-def main():
+def login():
     st.title("")
 
     # Center the container by using empty columns on either side
@@ -33,11 +39,9 @@ def main():
         
         # Login button inside the centered column
         if st.button("Login"):
-            if check_login(username, password, user_data):
-                st.success(f"Welcome, {username}!")
-                st.write("You have successfully logged in.")
+            check, details =  check_login(username, password, user_data)
+            if check:
+                return details
             else:
                 st.error("Invalid username or password.")
-
-if __name__ == "__main__":
-    main()
+                return None

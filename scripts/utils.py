@@ -23,12 +23,16 @@ def set_page_config():
         
 set_page_config()
     
-def click_button():
-    st.session_state.clicked = not st.session_state.clicked
+# def click_button():
+#     st.session_state.clicked = not st.session_state.clicked
     
 def click_button_return():
-    st.session_state.clicked = not st.session_state.clicked
+    st.session_state.clicked = False
     st.session_state.button = False
+    st.session_state['new_q'] = None
+    # st.session_state['ana'] = None
+    # st.session_state['stra'] = None
+    # st.session_state['index'] = None
 
 def click_button_disp(s, r, i):
     st.session_state.button = True
@@ -37,11 +41,12 @@ def click_button_disp(s, r, i):
     st.session_state['i'] = i
 
 def click_button_arg(a,b,c):
-    st.session_state.clicked = not st.session_state.clicked
-    st.session_state.warning_message = ""
+    st.session_state.clicked = True
     st.session_state['ana'] = a
     st.session_state['stra'] = b
     st.session_state['index'] = c
+    print("#####3333333333####################")
+    print("Execute bittom clicked")
     
 def click_button_done(): 
     if(len(st.session_state['options']) == 0):
@@ -224,7 +229,18 @@ def next_page(q, stratergy, i):
     
     st.write("\n")
     data = q[1]
-    print(data.columns)
+    from datetime import datetime
+
+    # Get the current time from your computer's clock
+    current_time = datetime.now()
+
+    # Format the time to include hours, minutes, and seconds
+    formatted_time = current_time.strftime('%H:%M:%S')
+
+    # Print the current time
+    print("Current Time:", formatted_time)
+
+    print(stratergy)
     row = list(data.iloc[0])
     entry_data_col_index = "entry_timestamp";
     for j in range(len(row)):
@@ -657,8 +673,9 @@ def home():
     if not st.session_state.clicked:
 
         Files = get_files()
-        
-        num_file = len(Files)+1
+        num_file = len(Files)
+        if st.session_state['account_details']['add_cards'] == "Yes":
+            num_file +=1
         num_row = num_file//3
         if num_file%3 != 0:
             num_row += 1
@@ -791,7 +808,7 @@ def home():
                                 st.session_state['options'].remove(stratergy)
                         # tile.button("Add", key=f"add_{stratergy}", use_container_width=True, on_click=click_button_add, args=[stratergy])
                 
-                elif st.session_state['sidebar']=="Home":
+                elif st.session_state['sidebar']=="Home" and st.session_state['account_details']['add_cards'] == "Yes":
                     tile = col.container(height=410, border=True)
                     centered_red_bold_large_text = """
                     <div style='display: flex; justify-content: center;'>
@@ -841,7 +858,6 @@ def home():
             st.button("Done", on_click=click_button_done)
                      
     if st.session_state.clicked:
-        
         if st.session_state['sidebar']=="Home":
             next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
             with st.sidebar:

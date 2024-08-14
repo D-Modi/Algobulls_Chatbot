@@ -1,3 +1,4 @@
 Email_ID,Password,add_cards,view_cards,use_combination,user_PL_book,admin
 alice@example.com,password123,No,No,Yes,No,No
 carol@example.com,password789,Yes,Yes,Yes,Yes,Yes
+tom@example.com,password456,No,Yes,No,Yes,No

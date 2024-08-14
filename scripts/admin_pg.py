@@ -19,7 +19,7 @@ def delete_user(user_data, index):
     save_user_data(user_data)
 
 # Streamlit app
-def main():
+def admin_view():
     st.title("Admin Page")
 
     # Load user data
@@ -60,7 +60,8 @@ def main():
                             'user_PL_book': user_PL_book,
                             'admin': admin
                         }
-                        user_data = user_data.append(new_user, ignore_index=True)
+                        new_user = pd.DataFrame.from_dict([new_user])
+                        user_data = pd.concat([user_data, new_user], ignore_index=True)
                         save_user_data(user_data)
                         st.success("User added successfully!")
                         st.experimental_rerun()
@@ -110,5 +111,3 @@ def main():
                 st.success("User deleted successfully!")
                 st.experimental_rerun()
 
-if __name__ == "__main__":
-    main()
