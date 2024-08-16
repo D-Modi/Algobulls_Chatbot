@@ -23,10 +23,12 @@ def set_page_config():
         
 set_page_config()
     
-# def click_button():
-#     st.session_state.clicked = not st.session_state.clicked
+def click_button():
+    st.session_state.clicked = not st.session_state.clicked
     
 def click_button_return():
+    print("Return to Home")
+    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
     st.session_state.clicked = False
     st.session_state.button = False
     st.session_state['new_q'] = None
@@ -54,7 +56,50 @@ def click_button_done():
     else:       
         st.session_state.clicked = True
         return
+    
+# @st.cache(allow_output_mutation=True)
+def create_ROI_plot(q):        
+        fig, ax1 = plt.subplots()
+        print("plotting")
+        print(q[3])
+        ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
+        ax1.set_xlabel('Month')
+        ax1.set_ylabel('Monthly Returns', color='b')
+        ax1.tick_params(axis='y', labelcolor='b')
+        ax1.set_xticks(q[3].index[::3])
+        ax1.set_xticklabels(q[3].index[::3], rotation=90)
+        print("Subheader 2")
+        ax2 = ax1.twinx()
+        print("L1")
+        ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
+        print("l2")
+        ax2.set_ylabel('ROI%', color='r')
+        print("l3")
+        ax2.tick_params(axis='y', labelcolor='r')
+        print("l4")
+        fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
+        print("l5")
+        st.pyplot(fig)
+        # filename = f"roi_plot_{q[0]}.png"
+        # plt.savefig(filename, bbox_inches='tight', pad_inches=0)
+        # plt.close(fig)  # Close the figure to free up memory
+        # print("l6")
+        # # Read the image file and encode it
+        # with open(filename, "rb") as img_file:
+        #     img_base64 = base64.b64encode(img_file.read()).decode()
+        # print("l7")
+        # # Display the image using Streamlit
+        # html_code = f'''
+        #     <div style="width: 100%; height: auto; overflow: hidden;">
+        #         <img src="data:image/png;base64,{img_base64}" style="width: 100%; height: auto;">
+        #     </div>
+        #     '''
 
+        # # Display the image using Streamlit
+        # st.write(html_code, unsafe_allow_html=True)
+        # print("Image displayed successfully")
+        print("l8")
+        
 #@st.cache_data(show_spinner=False, ttl=86400)
 def get_image_base64(image_path):
     with open(image_path, "rb") as img_file:
@@ -191,7 +236,7 @@ def is_valid_datetime(input_str):
         except ValueError:
             return False
         
-@st.cache_data(show_spinner=False, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])
@@ -199,7 +244,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
         if date_col[i] >= target_date_str:
             return i
 
-@st.cache_data(show_spinner=False, ttl=86400)     
+#@st.cache_data(show_spinner=False, ttl=86400)     
 def exit_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S")
     date_col = list(data[entry_data_col_index])[::-1]
@@ -215,12 +260,12 @@ def get_data_using_path(csv_path):
     data = pd.read_csv(csv_path)
     return data;
 
-@st.cache_data(show_spinner=False, ttl=86400)
+#@st.cache_data(show_spinner=False, ttl=86400)
 def get_analysis_obj(data, stn):
     row = calc(data, is_dataframe=1, filename=stn)
     return row;        
 
-@st.cache_data(show_spinner=False, ttl=86400)     
+#@st.cache_data(show_spinner=False, ttl=86400)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, is_dataframe=1, initial_investment=initial_investment, filename=stn)
     return Analysis;    
@@ -239,8 +284,13 @@ def next_page(q, stratergy, i):
 
     # Print the current time
     print("Current Time:", formatted_time)
-
     print(stratergy)
+    session_state_df = pd.DataFrame({
+        'Key': list(st.session_state.keys()),
+        'Value': list(st.session_state.values())
+    })
+    # print(session_state_df.head())
+    st.table()
     row = list(data.iloc[0])
     entry_data_col_index = "entry_timestamp";
     for j in range(len(row)):
@@ -387,7 +437,7 @@ def next_page(q, stratergy, i):
 
     with col5:
         st.write("")
-
+    print("Inital Layout Ready")
     entry_date_index = entry_find_nearest_date(data, selected_date_entry, entry_data_col_index)
     exit_date_index = exit_find_nearest_date(data, selected_date_exit, entry_data_col_index)
     if entry_date_index > exit_date_index:
@@ -408,7 +458,7 @@ def next_page(q, stratergy, i):
 
     st.title("Analysis")
     # Analysis = get_analysis(Analysis)
-
+    print("calander rendered")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.caption("Stratergy Code")
@@ -433,9 +483,10 @@ def next_page(q, stratergy, i):
         df = pd.DataFrame(arr, columns=["Duration", "Returns"])
         
         st.dataframe(df, hide_index=True, use_container_width=True)
-        
+    print("tab3 Done")
         
     with tab2:
+        print("in tab2")
         bt1 , bt2, bt3, bt4, bt5 = st.tabs(["Stats", "P&L", "ROI%", "Equity Curve", "Drawdown %"])
         
         with bt5:
@@ -443,40 +494,53 @@ def next_page(q, stratergy, i):
             st.line_chart(q[1], y='drawdown_percentage', x='Day')
             st.write(f"***Max Drawdown***: {q[7]}")
             st.write(f"***Maximum Drawdowm percentage***: {q[8]}")
-            
+        print("DrawDown Donw")
         with bt4:
             st.subheader("Equity Curve")
             st.line_chart(q[1], y='equity_curve')
-            
+        print("Equity Curve")
         with bt3:
             st.subheader("ROI% Curve")
             st.line_chart( q[2], y='roi' )
             st.write(f"***ROI***: {q[19][0]}")
             st.write(f"***ROI %***: {q[19][1]}%")
-            
-            st.subheader("Monthly Returns and ROI% Over Time")
-            fig, ax1 = plt.subplots()
-
-            ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
-            ax1.set_xlabel('Month')
-            ax1.set_ylabel('Monthly Returns', color='b')
-            ax1.tick_params(axis='y', labelcolor='b')
-            ax1.set_xticks(q[3].index[::3])
-            ax1.set_xticklabels(q[3].index[::3], rotation=90)
-            
-            ax2 = ax1.twinx()
-            ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
-            ax2.set_ylabel('ROI%', color='r')
-            ax2.tick_params(axis='y', labelcolor='r')
-            fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
-            st.pyplot(fig)
-            
+            print("Data written")
+            try:
+                st.subheader("Monthly Returns and ROI% Over Time")
+                # create_ROI_plot(q)
+                fig, ax1 = plt.subplots()
+                print("plotting")
+                ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
+                ax1.set_xlabel('Month')
+                ax1.set_ylabel('Monthly Returns', color='b')
+                ax1.tick_params(axis='y', labelcolor='b')
+                ax1.set_xticks(q[3].index[::3])
+                ax1.set_xticklabels(q[3].index[::3], rotation=90)
+                print("Subheader 2")
+                ax2 = ax1.twinx()
+                print("L1")
+                ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
+                print("l2")
+                ax2.set_ylabel('ROI%', color='r')
+                print("l3")
+                ax2.tick_params(axis='y', labelcolor='r')
+                print("l4")
+                fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
+                print("fig returned")
+                st.pyplot(fig)
+                print("PLOT")
+                print("ROI CURVE")
+            except:
+                print("Some Error Occured")
+                import traceback
+                traceback.print_exc()
+                
         with bt2:
             st.subheader("Daily P&L")
             st.bar_chart(q[2], y=['pnl_absolute'])
             st.subheader("Cumulative P&L")
             st.line_chart(q[2], y=['cum_pnl'])
-            
+            print("daily pnl")
         with bt1:
             week = q[32][0]
             month = q[31][0]
@@ -504,8 +568,10 @@ def next_page(q, stratergy, i):
                 ax0.text(avg_loss, 0.25, f'Avg Loss: {avg_loss}', color='k', va='bottom', ha='right')
                 ax0.set_yticks(ind+width/2)
                 ax0.set_yticklabels(x, minor=False)
-                ax0.set_title('Profit/Loss Analysis')
-                st.pyplot(fig0)
+                ax0.set_title('Profit/Loss Analysis')   
+                print("Befor pyplot")
+                st.pyplot(fig=fig0)
+                print("After pyplot")
                 
                 if isinstance(q[24], bytes):   
                     q[24] = int.from_bytes(q[24], byteorder='little')      
@@ -613,7 +679,9 @@ def next_page(q, stratergy, i):
     # Display the 
             #plt.tight_layout()  # Adjust layout to prevent overlapping labels
  
+    print("tab2 done")
     with tab1:
+        print("In tab1")
         st.subheader("Heatmap")
         htmap(q[2], 180)        
         
@@ -641,9 +709,8 @@ def next_page(q, stratergy, i):
                 daisply(q[51], st.session_state['Time'], q[6])    
             else:
                 display(q[50], q)
-
-
-
+    print("tab1 Done")
+    
 def save_uploaded_file(uploaded_file, save_directory, file_name):
     # Create the save directory if it does not exist
     if not os.path.exists(save_directory):
@@ -712,7 +779,7 @@ def home():
                                             start_date = csv_data['date'].iat[0]    
                                             last_date = csv_data['date'].iat[-1]  
                                             original_data = pd.read_csv(csv_path)
-                                            print( start_date, last_date, q[1]['date'].iat[-1])
+                                            
                                             if True:
                                             #if(start_date > q[1]['date'].iat[-1] and last_date > q[1]['date'].iat[-1]):  
                                                 try:
@@ -849,8 +916,6 @@ def home():
                                 if uploaded_file is not None and user_input is not None:
                                     st.rerun()
 
-
-
                     tile.write("\n")
                     break
                 
@@ -859,6 +924,7 @@ def home():
                      
     if st.session_state.clicked:
         if st.session_state['sidebar']=="Home":
+            print("Next Page called")
             next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
             with st.sidebar:
                 st.button("Return to cards", on_click=click_button_return)
