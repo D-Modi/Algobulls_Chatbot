@@ -115,10 +115,10 @@ else:
         if st.session_state['columns'][3] != 0.1:   
             if(st.button("Portfolio Optimiation")):
                 reset()
-                st.session_state['sidebar']="PortfolioOptimization"
+                st.session_state['sidebar']="PortfolioOptimization" 
     with col5:
-        st.button("Sign Out", use_container_width=True, on_click=click_button_signout)  
-                
+        st.button("Sign Out", on_click=click_button_signout)
+                    
     if st.session_state['sidebar'] is None:
         st.write("You Don't Have the required Permission.For Further details, contact Admin.")
     if st.session_state['sidebar']=="Home":

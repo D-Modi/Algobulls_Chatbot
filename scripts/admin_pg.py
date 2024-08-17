@@ -64,7 +64,7 @@ def admin_view():
                         user_data = pd.concat([user_data, new_user], ignore_index=True)
                         save_user_data(user_data)
                         st.success("User added successfully!")
-                        st.experimental_rerun()
+                        st.rerun()
 
     elif action == "Edit User":
         st.subheader("Edit User")
@@ -98,7 +98,7 @@ def admin_view():
                     user_data.at[index, 'admin'] = admin
                     save_user_data(user_data)
                     st.success("User updated successfully!")
-                    st.experimental_rerun()
+                    st.rerun()
 
     elif action == "Delete User":
         st.subheader("Delete User")
@@ -109,5 +109,5 @@ def admin_view():
                 index = user_data[user_data['Email_ID'] == user_to_delete].index[0]
                 delete_user(user_data, index)
                 st.success("User deleted successfully!")
-                st.experimental_rerun()
+                st.rerun()
 
