@@ -132,7 +132,7 @@ class StatergyAnalysis:
 
         daily_equity_curve = self.daily_returnts['cum_pnl'] + self.initial_investment
         self.equity_PctChange = daily_equity_curve.pct_change().dropna()
-        self.daily_annual_mean = self.equity_PctChange.mean() * np.sqrt(252)
+        self.daily_annual_mean = (self.equity_PctChange.mean() +1)**252 -1
         self.daily_annual_std = self.equity_PctChange.std() * np.sqrt(252) 
 
     def yearlyVola(self, customerPLBook=False):
@@ -197,17 +197,17 @@ class StatergyAnalysis:
         return [min_profitable_day, min_profit_day] 
     
     def Sharpe(self):
-        sharpe_ratio = (self.daily_annual_mean*np.sqrt(252) - self.risk_free_rate) / self.daily_annual_std
+        sharpe_ratio = (self.daily_annual_mean - self.risk_free_rate) / self.daily_annual_std
         return round(sharpe_ratio, 2)
     
     def Calmar(self):
-        calmar_ratio = self.daily_annual_mean*np.sqrt(252) / self.drawdown_pct * -100 
+        calmar_ratio = self.daily_annual_mean / self.drawdown_pct * -100 
         return round(calmar_ratio, 2)
     
     def Sortino(self):
         downside_returns = np.where(self.equity_PctChange < 0, self.equity_PctChange, 0)
         downside_deviation = downside_returns.std() * np.sqrt(252)
-        sortino_ratio = (self.daily_annual_mean*np.sqrt(252) - self.risk_free_rate) / downside_deviation
+        sortino_ratio = (self.daily_annual_mean - self.risk_free_rate) / downside_deviation
         return round(sortino_ratio, 2)
     
     def max_consecutive(self, daily_returns, quant):
@@ -404,8 +404,8 @@ class StatergyAnalysis:
         return round(len(self.csv_data)/len(daily_returns) , 2)
     
     def ProfitFactor(self):
-        daily_positive = self.csv_data[self.csv_data['pnl_absolute'] > 0]['pnl_absolute'].sum()
-        daily_neg = self.csv_data[self.csv_data['pnl_absolute'] < 0]['pnl_absolute'].sum()
+        daily_positive = self.daily_returnts[self.daily_returnts['pnl_absolute'] > 0]['pnl_absolute'].sum()
+        daily_neg = self.daily_returnts[self.daily_returnts['pnl_absolute'] < 0]['pnl_absolute'].sum()
         return round(daily_positive/daily_neg * -1 , 2), daily_neg, daily_positive
  
     def avgProfit(self, daily_returns=None, i=1):
