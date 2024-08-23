@@ -26,8 +26,6 @@ if 'index' not in st.session_state:
     st.session_state['index'] = None 
 if 'warning_message' not in st.session_state:
     st.session_state.warning_message = ""
-if 'new_q' not in st.session_state:
-    st.session_state['new_q'] = None
 if 'show_investments' not in st.session_state:
     st.session_state['show_investments'] = False 
 if 'show_weights' not in st.session_state:
@@ -45,7 +43,7 @@ if 'Total_investment' not in st.session_state:
 if 'options' not in st.session_state:
     st.session_state['options'] = None
 if 'columns' not in st.session_state:
-    st.session_state['columns'] = [1,1,2.5,3,6.5,1]
+    st.session_state['columns'] = [1,1,2.5,3,6,1.5]
 if 'account_details' not in st.session_state:
     st.session_state['account_details'] = None
     
@@ -58,7 +56,7 @@ def CustomerPLBook(customerPLBook_analysis_streamlit):
 def click_button_signout():
         st.session_state['sidebar']= "Home"
         st.session_state['account_details'] = None
-        st.session_state['columns'] = [1,1,2.5,3,6.5,1]
+        st.session_state['columns'] = [1,1,2.5,3,6,1.5]
         
 set_page_config()
 customerPLBook_analysis_streamlit = customerPLBook_Analysis()
@@ -117,7 +115,7 @@ else:
                 reset()
                 st.session_state['sidebar']="PortfolioOptimization" 
     with col5:
-        st.button("Sign Out", on_click=click_button_signout)
+        st.button("Sign Out", on_click=click_button_signout, use_container_width=True)
                     
     if st.session_state['sidebar'] is None:
         st.write("You Don't Have the required Permission.For Further details, contact Admin.")

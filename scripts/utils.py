@@ -27,8 +27,6 @@ def click_button():
     st.session_state.clicked = not st.session_state.clicked
     
 def click_button_return():
-    print("Return to Home")
-    print("@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
     st.session_state.clicked = False
     st.session_state.button = False
     st.session_state['new_q'] = None
@@ -47,58 +45,13 @@ def click_button_arg(a,b,c):
     st.session_state['ana'] = a
     st.session_state['stra'] = b
     st.session_state['index'] = c
-    print("#########################")
-    print("Execute bittom clicked")
-    
+
 def click_button_done(): 
     if(len(st.session_state['options']) == 0):
         st.write("No strategies Seleted")  
     else:       
         st.session_state.clicked = True
         return
-    
-# @st.cache(allow_output_mutation=True)
-def create_ROI_plot(q):        
-        fig, ax1 = plt.subplots()
-        print("plotting")
-        print(q[3])
-        ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
-        ax1.set_xlabel('Month')
-        ax1.set_ylabel('Monthly Returns', color='b')
-        ax1.tick_params(axis='y', labelcolor='b')
-        ax1.set_xticks(q[3].index[::3])
-        ax1.set_xticklabels(q[3].index[::3], rotation=90)
-        print("Subheader 2")
-        ax2 = ax1.twinx()
-        print("L1")
-        ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
-        print("l2")
-        ax2.set_ylabel('ROI%', color='r')
-        print("l3")
-        ax2.tick_params(axis='y', labelcolor='r')
-        print("l4")
-        fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
-        print("l5")
-        st.pyplot(fig)
-        # filename = f"roi_plot_{q[0]}.png"
-        # plt.savefig(filename, bbox_inches='tight', pad_inches=0)
-        # plt.close(fig)  # Close the figure to free up memory
-        # print("l6")
-        # # Read the image file and encode it
-        # with open(filename, "rb") as img_file:
-        #     img_base64 = base64.b64encode(img_file.read()).decode()
-        # print("l7")
-        # # Display the image using Streamlit
-        # html_code = f'''
-        #     <div style="width: 100%; height: auto; overflow: hidden;">
-        #         <img src="data:image/png;base64,{img_base64}" style="width: 100%; height: auto;">
-        #     </div>
-        #     '''
-
-        # # Display the image using Streamlit
-        # st.write(html_code, unsafe_allow_html=True)
-        # print("Image displayed successfully")
-        print("l8")
         
 #@st.cache_data(show_spinner=False, ttl=86400)
 def get_image_base64(image_path):
@@ -274,22 +227,6 @@ def next_page(q, stratergy, i):
     
     st.write("\n")
     data = q[1]
-    from datetime import datetime
-
-    # Get the current time from your computer's clock
-    current_time = datetime.now()
-
-    # Format the time to include hours, minutes, and seconds
-    formatted_time = current_time.strftime('%H:%M:%S')
-
-    # Print the current time
-    print("Current Time:", formatted_time)
-    print(stratergy)
-    session_state_df = pd.DataFrame({
-        'Key': list(st.session_state.keys()),
-        'Value': list(st.session_state.values())
-    })
-    # print(session_state_df.head())
     st.table()
     row = list(data.iloc[0])
     entry_data_col_index = "entry_timestamp";
@@ -437,7 +374,6 @@ def next_page(q, stratergy, i):
 
     with col5:
         st.write("")
-    print("Inital Layout Ready")
     entry_date_index = entry_find_nearest_date(data, selected_date_entry, entry_data_col_index)
     exit_date_index = exit_find_nearest_date(data, selected_date_exit, entry_data_col_index)
     if entry_date_index > exit_date_index:
@@ -458,7 +394,6 @@ def next_page(q, stratergy, i):
 
     st.title("Analysis")
     # Analysis = get_analysis(Analysis)
-    print("calander rendered")
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         st.caption("Stratergy Code")
@@ -483,10 +418,8 @@ def next_page(q, stratergy, i):
         df = pd.DataFrame(arr, columns=["Duration", "Returns"])
         
         st.dataframe(df, hide_index=True, use_container_width=True)
-    print("tab3 Done")
-        
+
     with tab2:
-        print("in tab2")
         bt1 , bt2, bt3, bt4, bt5 = st.tabs(["Stats", "P&L", "ROI%", "Equity Curve", "Drawdown %"])
         
         with bt5:
@@ -494,53 +427,36 @@ def next_page(q, stratergy, i):
             st.line_chart(q[1], y='drawdown_percentage', x='Day')
             st.write(f"***Max Drawdown***: {q[7]}")
             st.write(f"***Maximum Drawdowm percentage***: {q[8]}")
-        print("DrawDown Donw")
         with bt4:
             st.subheader("Equity Curve")
             st.line_chart(q[1], y='equity_curve')
-        print("Equity Curve")
         with bt3:
             st.subheader("ROI% Curve")
             st.line_chart( q[2], y='roi' )
             st.write(f"***ROI***: {q[19][0]}")
             st.write(f"***ROI %***: {q[19][1]}%")
-            print("Data written")
-            try:
-                st.subheader("Monthly Returns and ROI% Over Time")
-                # create_ROI_plot(q)
-                fig, ax1 = plt.subplots()
-                print("plotting")
-                ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
-                ax1.set_xlabel('Month')
-                ax1.set_ylabel('Monthly Returns', color='b')
-                ax1.tick_params(axis='y', labelcolor='b')
-                ax1.set_xticks(q[3].index[::3])
-                ax1.set_xticklabels(q[3].index[::3], rotation=90)
-                print("Subheader 2")
-                ax2 = ax1.twinx()
-                print("L1")
-                ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
-                print("l2")
-                ax2.set_ylabel('ROI%', color='r')
-                print("l3")
-                ax2.tick_params(axis='y', labelcolor='r')
-                print("l4")
-                fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
-                print("fig returned")
-                st.pyplot(fig)
-                print("PLOT")
-                print("ROI CURVE")
-            except:
-                print("Some Error Occured")
-                import traceback
-                traceback.print_exc()
+        
+            st.subheader("Monthly Returns and ROI% Over Time")
+            fig, ax1 = plt.subplots()
+            ax1.bar(q[3].index.values, q[3]['cum_pnl'].values, color='b', alpha=0.6, label='Monthly Returns')
+            ax1.set_xlabel('Month')
+            ax1.set_ylabel('Monthly Returns', color='b')
+            ax1.tick_params(axis='y', labelcolor='b')
+            ax1.set_xticks(q[3].index[::3])
+            ax1.set_xticklabels(q[3].index[::3], rotation=90)
+            ax2 = ax1.twinx()
+            ax2.plot(q[3].index.values, q[3]['roi'].values, color='r', marker='o', label='ROI%')
+            ax2.set_ylabel('ROI%', color='r')
+            ax2.tick_params(axis='y', labelcolor='r')
+            fig.legend(loc="upper left", bbox_to_anchor=(0.1,0.9))
+            st.pyplot(fig)
+
                 
         with bt2:
             st.subheader("Daily P&L")
             st.bar_chart(q[2], y=['pnl_absolute'])
             st.subheader("Cumulative P&L")
             st.line_chart(q[2], y=['cum_pnl'])
-            print("daily pnl")
         with bt1:
             week = q[32][0]
             month = q[31][0]
@@ -568,10 +484,8 @@ def next_page(q, stratergy, i):
                 ax0.text(avg_loss, 0.25, f'Avg Loss: {avg_loss}', color='k', va='bottom', ha='right')
                 ax0.set_yticks(ind+width/2)
                 ax0.set_yticklabels(x, minor=False)
-                ax0.set_title('Profit/Loss Analysis')   
-                print("Befor pyplot")
+                ax0.set_title('Profit/Loss Analysis') 
                 st.pyplot(fig=fig0)
-                print("After pyplot")
                 
                 if isinstance(q[24], bytes):   
                     q[24] = int.from_bytes(q[24], byteorder='little')      
@@ -676,12 +590,8 @@ def next_page(q, stratergy, i):
             # Rotate x-axis labels for better visibility
             ap.set_xticklabels(labels=categories, rotation=45)
             st.pyplot(fp)
-    # Display the 
-            #plt.tight_layout()  # Adjust layout to prevent overlapping labels
- 
-    print("tab2 done")
+   
     with tab1:
-        print("In tab1")
         st.subheader("Heatmap")
         htmap(q[2], 180)        
         
@@ -707,8 +617,7 @@ def next_page(q, stratergy, i):
                 daisply(q[51], st.session_state['Time'], q[6])    
             else:
                 display(q[50], q)
-    print("tab1 Done")
-    
+
 def save_uploaded_file(uploaded_file, save_directory, file_name):
     # Create the save directory if it does not exist
     if not os.path.exists(save_directory):
@@ -924,7 +833,6 @@ def home():
                      
     if st.session_state.clicked:
         if st.session_state['sidebar']=="Home":
-            print("Next Page called")
             next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
             with st.sidebar:
                 st.button("Return to cards", on_click=click_button_return)
