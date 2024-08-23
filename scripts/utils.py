@@ -1,5 +1,4 @@
 
-from streamlit.errors import StreamlitAPIException
 import streamlit as st
 import matplotlib.pyplot as plt  
 import pandas as pd
@@ -29,10 +28,6 @@ def click_button():
 def click_button_return():
     st.session_state.clicked = False
     st.session_state.button = False
-    st.session_state['new_q'] = None
-    # st.session_state['ana'] = None
-    # st.session_state['stra'] = None
-    # st.session_state['index'] = None
 
 def click_button_disp(s, r, i):
     st.session_state.button = True
@@ -668,7 +663,12 @@ def home():
                 if i < len(Files):
                     stratergy = Files[i]
                     tile = col.container(height=410, border=True)
-                    csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
+                    csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"  
+                    data = pd.read_csv(csv_path)
+                    q = get_analysis_obj(data, stratergy)
+                    i += 1
+                    data = q[1]
+                    
                     with tile:
                         col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
 
@@ -683,27 +683,22 @@ def home():
                                             st.session_state.warning_message = ""
                                             if uploaded_file is not None:       
                                                 data = pd.read_csv(uploaded_file)
-                                                csv_data = StatergyAnalysis.new_csv(data, is_dataframe=1)  
-                                                start_date = csv_data['date'].iat[0]    
-                                                last_date = csv_data['date'].iat[-1]  
-                                                original_data = pd.read_csv(csv_path)
-                                                
-                                                if True:
-                                                #if(start_date > q[1]['date'].iat[-1] and last_date > q[1]['date'].iat[-1]):  
-                                                    try:
-                                                        csv_data = csv_data[original_data.columns]
-                                                        result = pd.concat([original_data, data], ignore_index=True)
-                                                        result.to_csv(csv_path)
+                                                csv_data, date_format = StatergyAnalysis.new_csv(data, is_dataframe=1)   
+                                                original_data = q[1]
+                                                original_date_fmt = q[52]
+                                                print(date_format, original_date_fmt)
+                                                if original_date_fmt != date_format:
+                                                    date_col = csv_data['entry_timestamp']
+                                                    parsed_data = pd.to_datetime(date_col, format= date_format)
+                                                    date_col = parsed_data.dt.strftime(original_date_fmt) 
+                                                    csv_data['entry_timestamp'] = date_col
+                                                    
+                                                try:
+                                                    result = pd.concat([original_data, csv_data], ignore_index=True)
+                                                    result.to_csv(csv_path)
 
-                                                    except:
-                                                        try:
-                                                            original_data = original_data[csv_data.columns]
-                                                            result = pd.concat([original_data, data], ignore_index=True)
-                                                            result.to_csv(csv_path)
-                                                        except: 
-                                                            st.session_state.warning_message = "**Error:** Columns of new csv don't match with previous one"
-                                                else:  
-                                                    st.session_state.warning_message = "**Error** Data in uploaded csv file preceeds last date in previous csv"
+                                                except: 
+                                                    st.session_state.warning_message = "**Error:** Columns of new csv don't match with previous one"
                                                 st.rerun() 
                                             
                         with col4:
@@ -712,14 +707,7 @@ def home():
                                 if delete_button:
                                     os.remove(csv_path)
                                     st.rerun()
-                    
-                    # csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"
-                    
-                    data = get_data_using_path(csv_path)
-                    q = get_analysis_obj(data, stratergy)
-                    i += 1
-
-                    data = q[1]
+                   
                     custom_aligned_text = f"""
                     <div style="display: flex; justify-content: space-between;">
                     <span style="text-align: left;">{stratergy}</span>

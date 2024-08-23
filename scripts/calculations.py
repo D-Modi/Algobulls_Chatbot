@@ -50,7 +50,8 @@ def calc(csv_name, is_dataframe=0, initial_investment=150000, filename=None, sav
         if i == 3:
             period_wise_returns = [Analysis.max_profit(daily_returns, 1), Analysis.max_profit(daily_returns, -1) ]
         row.append(period_wise_returns)
-
+    row.append(Analysis.csv_date_format)
+    
     return row
 
 
@@ -89,5 +90,6 @@ def calc_for_customer_plb(strategy_code, Analysis):
         if i == 3:
             period_wise_returns = [Analysis.max_profit(daily_returns, 1), Analysis.max_profit(daily_returns, -1) ]
         row.append(period_wise_returns)
-
+    row.append(Analysis.csv_date_format)    
+    
     return row
