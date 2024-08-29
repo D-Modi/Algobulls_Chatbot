@@ -673,7 +673,7 @@ def home():
                         col1,col2, col3, col4 = st.columns([0.35,0.15, 0.3, 0.2]) 
 
                         with col1:
-                            st.write("By Algobulls") 
+                            st.write("By Expert") 
 
                         with col3:
                             if st.session_state['account_details']['add_cards'] == "Yes":
