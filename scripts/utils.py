@@ -190,7 +190,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S").split(" ")[0]
     date_col = list(data[entry_data_col_index])
     for i in range(len(date_col)):
-        if date_col[i].split(" ")[0] >= target_date_str:
+        if str(date_col[i]).split(" ")[0] >= target_date_str:
             return i
 
 #@st.cache_data(show_spinner=False, ttl=86400)     
@@ -199,7 +199,7 @@ def exit_find_nearest_date(data, target_date, entry_data_col_index):
     date_col = list(data[entry_data_col_index])[::-1]
     for i in range(len(date_col)):
         try:
-            if date_col[i].split(" ")[0] <= target_date_str:
+            if str(date_col[i]).split(" ")[0] <= target_date_str:
                 return len(date_col)-i-1;
         except:
             continue
