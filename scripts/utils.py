@@ -259,13 +259,7 @@ def next_page(q_init, stratergy, i):
         except:
             pass
 
-    try:
-        data = data.sort_values(by=entry_data_col_index)
-    except:
-        for i in range(len(data)):
-            data.loc[i, entry_data_col_index] = str(data.loc[i, entry_data_col_index])
-        data = data.sort_values(by=entry_data_col_index)
-
+    data = data.sort_values(by=entry_data_col_index)
     
     try:
         date_format = "%Y-%m-%d"
