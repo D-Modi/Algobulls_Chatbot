@@ -12,6 +12,7 @@ import numpy as np
 import seaborn as sn
 import re
 import glob
+import time
 from stratrgy_analysis import StatergyAnalysis
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
@@ -381,6 +382,7 @@ def next_page(q_init, stratergy, i):
         st.write("")
     with subcol2:
         if st.button("Submit"):
+            time.sleep(3)
             if entry_date_index != 0 or exit_date_index != len(data) -1 or initial_investment != 150000:
                 modified_data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
                 q = get_analysis_with_initial_invest(modified_data, initial_investment, stratergy)
