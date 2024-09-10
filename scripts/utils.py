@@ -218,10 +218,11 @@ def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, is_dataframe=1, initial_investment=initial_investment, filename=stn)
     return Analysis;    
 
-def next_page(q, stratergy, i):
+def next_page(q_init, stratergy, i):
     
     st.write("\n")
-    data = q[1]
+    data = q_init[1]
+    q = q_init
     st.table()
     row = list(data.iloc[0])
     entry_data_col_index = "entry_timestamp";
@@ -381,9 +382,9 @@ def next_page(q, stratergy, i):
     with subcol2:
         if st.button("Submit"):
             if entry_date_index != 0 or exit_date_index != len(data) -1 or initial_investment != 150000:
-                data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
-                q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
-                st.session_state['ana'] = q
+                modified_data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
+                q = get_analysis_with_initial_invest(modified_data, initial_investment, stratergy)
+                st.session_state['ana'] = q_init
     with subcol3:
         st.write("")
 
