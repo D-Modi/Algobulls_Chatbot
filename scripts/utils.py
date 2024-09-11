@@ -458,8 +458,9 @@ def next_page(q, stratergy, i):
             quat = q[35][0]
             half = q[34][0]
             yr = q[33][0]
-            
-            
+            # st.table(q[2])
+            # q[2].to_csv("Daily_returns.csv")
+
             c1, c2 = st.columns(2)
             with c1:
                 fig0, ax0 = plt.subplots(figsize=(10,2))
