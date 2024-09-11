@@ -12,6 +12,7 @@ import numpy as np
 import seaborn as sn
 import re
 import glob
+import time
 from stratrgy_analysis import StatergyAnalysis
 
 warnings.filterwarnings("ignore", category=UserWarning, message=".*experimental_allow_widgets.*")
@@ -189,7 +190,7 @@ def entry_find_nearest_date(data, target_date, entry_data_col_index):
     target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S").split(" ")[0]
     date_col = list(data[entry_data_col_index])
     for i in range(len(date_col)):
-        if date_col[i].split(" ")[0] >= target_date_str:
+        if str(date_col[i]).split(" ")[0] >= target_date_str:
             return i
 
 #@st.cache_data(show_spinner=False, ttl=86400)     
@@ -198,7 +199,7 @@ def exit_find_nearest_date(data, target_date, entry_data_col_index):
     date_col = list(data[entry_data_col_index])[::-1]
     for i in range(len(date_col)):
         try:
-            if date_col[i].split(" ")[0] <= target_date_str:
+            if str(date_col[i]).split(" ")[0] <= target_date_str:
                 return len(date_col)-i-1;
         except:
             continue
@@ -218,10 +219,11 @@ def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, is_dataframe=1, initial_investment=initial_investment, filename=stn)
     return Analysis;    
 
-def next_page(q, stratergy, i):
+def next_page(q_init, stratergy, i):
     
     st.write("\n")
-    data = q[1]
+    data = q_init[1]
+    q = q_init
     st.table()
     row = list(data.iloc[0])
     entry_data_col_index = "entry_timestamp";
@@ -258,8 +260,12 @@ def next_page(q, stratergy, i):
         except:
             pass
 
+    try:
+        data = data.sort_values(by=entry_data_col_index)
+        q_init[1] = data
+    except:
+        data = q_init[1]
     
-    data = data.sort_values(by=entry_data_col_index)
     try:
         date_format = "%Y-%m-%d"
         startdate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[0].split(" ")[0], date_format)
@@ -381,9 +387,9 @@ def next_page(q, stratergy, i):
     with subcol2:
         if st.button("Submit"):
             if entry_date_index != 0 or exit_date_index != len(data) -1 or initial_investment != 150000:
-                data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
-                q = get_analysis_with_initial_invest(data, initial_investment, stratergy)
-                st.session_state['ana'] = q
+                modified_data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
+                q = get_analysis_with_initial_invest(modified_data, initial_investment, stratergy)
+                st.session_state['ana'] = q_init
     with subcol3:
         st.write("")
 
