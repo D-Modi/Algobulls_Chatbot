@@ -87,6 +87,7 @@ if st.session_state['account_details'] is None:
             
         st.session_state['account_details'] = details
 else: 
+    st.session_state["run_once"] = True
     col0, col1, col2 ,col3, col4, col5= st.columns(st.session_state['columns'])
     
     with col0:

@@ -90,6 +90,9 @@ class StatergyAnalysis:
         if not replaced:
             data['entry_transaction_type'] = data['entry_transaction_type'].replace({'BUY': 0, 'SELL': 1})
             
+        if "pnl_cumulative_absolute" not in data.columns:
+            data["pnl_cumulative_absolute"] = data["pnl_absolute"].cumsum()
+        
         data['date'], date_format = parse_data_fn(data['entry_timestamp'])
         data = data.dropna(subset=['pnl_absolute'])
         
@@ -163,7 +166,7 @@ class StatergyAnalysis:
         yearly_returns['cum_pnl'] = yearly_returns['pnl_absolute'].cumsum()
         yearly_returns[['pnl_absolute', 'cum_pnl']]
         self.yearly_returns =yearly_returns[['pnl_absolute', 'cum_pnl']]
-           
+        # daily_analysis.to_csv("Daily_returns.csv")
         return daily_analysis, monthly_analysis, weekday_returns, weekly_returns, yearly_returns   
 
     def max_profit(self, returns, i=1):
