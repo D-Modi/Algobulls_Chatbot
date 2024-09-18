@@ -83,6 +83,8 @@ class StatergyAnalysis:
             data.rename(columns={'EN_TT': 'entry_transaction_type'}, inplace=True)
         if 'cumulative_pnl_absolute' in data.columns:
             data.rename(columns={'cumulative_pnl_absolute': 'pnl_cumulative_absolute'}, inplace=True)
+        if 'ROI' in data.columns:
+            data.rename(columns={'ROI': 'pnl_cumulative_absolute'}, inplace=True)
         if 'Drawdown_%' in data.columns:
             data.rename(columns={'Drawdown_%': 'drawdown_percentage'}, inplace=True)
         if 'Drawdown %' in data.columns:
