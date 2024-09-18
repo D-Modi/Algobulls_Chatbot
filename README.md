@@ -16,5 +16,5 @@ Go inside the directory and install requirments.txt
 Run the streamlit file
 	streamlit run scripts/csv_streamlit.py --server.enableXsrfProtection false
 
-# In the code, we have taken the initial investment to be 150000  and the risk free rate to be 7% for all stratergies 
+// In the code, we have taken the initial investment to be 150000  and the risk free rate to be 7% for all stratergies 
 
