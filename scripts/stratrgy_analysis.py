@@ -8,6 +8,9 @@ from datetime import datetime
 from dateutil.relativedelta import relativedelta
 from statistics import mean 
     
+def parse_add_char(date_str):
+    return date_str.split("+")[0]
+ 
 def parse_data_fn(data):
     formats = [
         "%d-%m-%Y %H:%M",
@@ -23,6 +26,7 @@ def parse_data_fn(data):
         "%Y/%m/%d %H:%M",
         "%Y/%m/%d %H:%M:%S"
     ]
+    data = data.apply(parse_add_char)
     for fmt in formats:   
         try: 
             parsed_data = pd.to_datetime(data, format=fmt)
