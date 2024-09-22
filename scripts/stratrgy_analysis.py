@@ -28,8 +28,9 @@ def parse_data_fn(data):
     ]
     data = data.apply(parse_add_char)
     for fmt in formats:   
-        try: 
+        try:
             parsed_data = pd.to_datetime(data, format=fmt)
+            print(fmt, parsed_data)
             return parsed_data, fmt
         except ValueError:
             continue
