@@ -4,7 +4,6 @@ import numpy as np
 import re
 import glob
 from stratrgy_analysis import StatergyAnalysis
-from dateutil import parser
 from customerPLBook_analysis import customerPLBook_Analysis
 from calculations import *
 from utils import *
@@ -43,7 +42,7 @@ def data_list(options, investment):
     df.set_index("Strategy_Code", inplace=True)
     st.write(df)
 
-    return Comp_Analysis
+    return Analysis
     
 def calc_amt(options, weights, total_investment):
     investment = {}
@@ -129,10 +128,16 @@ def merged_csv(options, dfs, investment):
     data = data.sort_values(by='date')
     return data
 
-def complete_analysis(Analysis):   
-    obj =  customerPLBook_Analysis()
-    obj.customerPLBook_analysis_display(Analysis, option=None)
+# def complete_analysis(Analysis):   
+    # obj =  customerPLBook_Analysis()
+    # obj.customerPLBook_analysis_display(Analysis, option=None)
     
+def complete_analysis(options, Analysis):
+    st.session_state['show_Analysis'] = True
+    st.session_state['ana'] = Analysis
+    st.session_state['stra'] = options
+    st.session_state['index'] = "optimize"
+        
 def reset():    
     st.session_state['Total_investment'] = None
     st.session_state['weights'] = None
@@ -177,6 +182,11 @@ def run_optimize():
                 
                 if(st.button("Re-Enter Weights & initial invetment")):
                     st.session_state['Entered_values'] = None
+                if(st.button("Enter investment amounts")):
+                    st.session_state['Entered_values'] = None   
+                    st.session_state['show_investments'] = True
+                    st.session_state['show_weights'] = False
+                    
 
         if st.session_state['show_investments']: 
             if st.session_state['Entered_values'] is None:
@@ -188,20 +198,24 @@ def run_optimize():
                     
                 if(st.button("Re-Enter invetment amount")):
                     st.session_state['Entered_values'] = None
+                
+                if(st.button("Enter Weights & initial invetment")):
+                    st.session_state['Entered_values'] = None   
+                    st.session_state['show_investments'] = False
+                    st.session_state['show_weights'] = True
+                    
 
         if st.session_state['Entered_values'] is not None:
-            weights = st.session_state['weights']
             investment = st.session_state['investment']
-            total_investment = st.session_state['Total_investment']
-            
             portfolio_Analysis = data_list(options, investment)
             
             if st.session_state['show_Analysis'] == False:
-                if(st.button("Show Complete Analysis")):
-                    st.session_state['show_Analysis'] = True
+                st.button("Show Complete Analysis", on_click=complete_analysis, args=[st.session_state['options'], portfolio_Analysis])
+    
             if st.session_state['show_Analysis'] == True:
-                complete_analysis(portfolio_Analysis)
-                
+                #st.table(portfolio_Analysis[1])
+                next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
+            
         with st.sidebar:
             st.button("Re-Selet Srategies", on_click=reset)
                 

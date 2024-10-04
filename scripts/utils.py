@@ -36,12 +36,15 @@ def click_button_disp(s, r, i):
     st.session_state['rt'] = r
     st.session_state['i'] = i
 
-def click_button_arg(a,b,c):
+def click_button_arg(analysis, strategy, key):
+    st.session_state['first_date'] = 0
+    st.session_state['last_date'] = len(analysis[1]) -1
     st.session_state.clicked = True
-    st.session_state['ana'] = a
-    st.session_state['stra'] = b
-    st.session_state['index'] = c
-
+    st.session_state['ana'] = analysis
+    st.session_state['stra'] = strategy
+    st.session_state['index'] = key
+    st.session_state['complete_df'] = analysis[1]
+    
 def click_button_done(): 
     if(len(st.session_state['options']) == 0):
         st.write("No strategies Seleted")  
@@ -185,24 +188,23 @@ def is_valid_datetime(input_str):
         except ValueError:
             return False
         
-#@st.cache_data(show_spinner=False, ttl=86400)
-def entry_find_nearest_date(data, target_date, entry_data_col_index):
-    target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S").split(" ")[0]
-    date_col = list(data[entry_data_col_index])
-    for i in range(len(date_col)):
-        if str(date_col[i]).split(" ")[0] >= target_date_str:
+def entry_find_nearest_date(target_date):
+    target_date = pd.Timestamp(target_date)
+    data = st.session_state['complete_df']['Day']
+    data = pd.to_datetime(data, format='%Y-%m-%d')
+    for i in range(len(data)):
+        date = data[i]
+        if date >= target_date:
             return i
-
-#@st.cache_data(show_spinner=False, ttl=86400)     
-def exit_find_nearest_date(data, target_date, entry_data_col_index):
-    target_date_str = target_date.strftime("%Y-%m-%d %H:%M:%S").split(" ")[0]
-    date_col = list(data[entry_data_col_index])[::-1]
-    for i in range(len(date_col)):
-        try:
-            if str(date_col[i]).split(" ")[0] <= target_date_str:
-                return len(date_col)-i-1;
-        except:
-            continue
+  
+def exit_find_nearest_date(target_date):
+    target_date = pd.Timestamp(target_date)
+    data = st.session_state['complete_df']['Day']
+    data = pd.to_datetime(data, format='%Y-%m-%d')
+    for i in reversed(range(len(data))):
+        date = data[i]
+        if date <= target_date:
+            return i
 
 #@st.cache_data(show_spinner=False, ttl=86400)
 def get_data_using_path(csv_path):
@@ -217,79 +219,14 @@ def get_analysis_obj(data, stn):
 #@st.cache_data(show_spinner=False, ttl=86400)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, is_dataframe=1, initial_investment=initial_investment, filename=stn)
-    return Analysis;    
-
-def next_page(q_init, stratergy, i):
+    return Analysis;  
+    
+def next_page(q, stratergy, i):
     
     st.write("\n")
-    data = q_init[1]
-    q = q_init
-    st.table()
-    row = list(data.iloc[0])
-    entry_data_col_index = "entry_timestamp";
-    for j in range(len(row)):
-        tempstr = str(row[j]).split(" ")
-        if is_valid_datetime(tempstr[0]):
-            entry_data_col_index = data.columns[j]
-            break;
-
-    def parse_datetime(date_str):
-        formats = [
-            "%d-%m-%Y %H:%M",
-            "%d-%m-%Y %H:%M:%S",
-            "%d/%m/%Y %H:%M",
-            "%d/%m/%Y %H:%M:%S",
-            "%m-%d-%Y %H:%M",
-            "%m-%d-%Y %H:%M:%S",
-            "%m/%d/%Y %H:%M",
-            "%m/%d/%Y %H:%M:%S",
-            "%Y-%m-%d %H:%M",
-            "%Y-%m-%d %H:%M:%S",
-            "%Y/%m/%d %H:%M",
-            "%Y/%m/%d %H:%M:%S"
-        ]
-        for fmt in formats:
-            try:
-                return datetime.strptime(str(date_str), fmt)
-            except ValueError:
-                continue
-        raise ValueError(f"Date format not recognized: {date_str}")
-
-
-    # Format datetime to string in desired format
-    data.loc[:, entry_data_col_index] = data.loc[:, entry_data_col_index].apply(parse_datetime)
-    for i in range(len(data)):
-        try:
-            data.loc[i, entry_data_col_index] = data.loc[i, entry_data_col_index].strftime('%Y-%m-%d %H:%M')
-        except:
-            pass
-
-    try:
-        data = data.sort_values(by=entry_data_col_index)
-        q_init[1] = data
-    except:
-        data = q_init[1]
-    
-    try:
-        date_format = "%Y-%m-%d"
-        startdate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[0].split(" ")[0], date_format)
-        i = -1
-        while(True):
-            try:
-                enddate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[i].split(" ")[0], date_format)
-                break;
-            except:
-                i -= 1
-    except:
-        date_format = "%d-%m-%Y"
-        startdate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[0].split(" ")[0], date_format)
-        i = -1
-        while(True):
-            try:
-                enddate = datetime.strptime(data.loc[:, entry_data_col_index].iloc[i].split(" ")[0], date_format)
-                break;
-            except:
-                i -= 1     
+    data = st.session_state['complete_df']
+    st.table() 
+        
     custom_aligned_text = f"""
         <div style="display: flex; justify-content: space-between; color: green; font-size: 24px;">
         <span style="text-align: left;">   </span>
@@ -305,118 +242,117 @@ def next_page(q_init, stratergy, i):
         """
     st.write(custom_aligned_text, unsafe_allow_html=True)
     st.markdown(mark, unsafe_allow_html=True)
-
-    col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1.7, 3])
-    with col1:
-        st.write("")
-    with col2:
+    
+    if not isinstance(i, str):
+        startdate = pd.to_datetime(q[1]['Day'].iloc[0]).date()
+        enddate = pd.to_datetime(q[1]['Day'].iloc[-1]).date()
         
-        st.markdown(
-            """
-            <style>
-            .stDateInput > label {
-                display: flex;
-                justify-content: center;
-                font-size: 18px;
-                margin-top: -30px;
-                
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
+        col1, col2, col3, col4, col5 = st.columns([3, 1, 1, 1.7, 3])
+        with col1:
+            st.write("")
+        with col2:
+            st.markdown(
+                """
+                <style>
+                .stDateInput > label {
+                    display: flex;
+                    justify-content: center;
+                    font-size: 18px;
+                    margin-top: -30px;
+                    
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+            selected_date_entry = st.date_input(
+            "Entry Date",
+            startdate,
+            key=f"entrydate{i}",
+            min_value=pd.to_datetime(data['Day'].iloc[0]).date(),      #startdate
+            max_value=pd.to_datetime(data['Day'].iloc[-1]).date(),      #enddate
         )
-        selected_date_entry = st.date_input(
-        "Entry Date",
-        startdate,
-        key=f"entrydate{i}",
-        min_value=startdate,
-        max_value=enddate,
-
-    )
-    with col3:
-        st.markdown(
-            """
-            <style>
-            .stDateInput > label {
-                display: flex;
-                justify-content: center;
-                font-size: 18px;
-                margin-top: -30px;
-                
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
+        with col3:
+            st.markdown(
+                """
+                <style>
+                .stDateInput > label {
+                    display: flex;
+                    justify-content: center;
+                    font-size: 18px;
+                    margin-top: -30px;
+                    
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+            selected_date_exit = st.date_input(
+            "Exit Date",
+            enddate,
+            key=f"exitdate{i}",
+            min_value=selected_date_entry,      #startdate
+            max_value=pd.to_datetime(data['Day'].iloc[-1]).date(),      #enddate
         )
-        selected_date_exit = st.date_input(
-        "Exit Date",
-        enddate,
-        key=f"exitdate{i}",
-        min_value=startdate,
-        max_value=enddate,
+        with col4:
+            st.markdown(
+                """
+                <style>
+                .stNumberInput > label {
+                    display: flex;
+                    justify-content: center;
+                    font-size: 18px;
+                    margin-top: -30px;
+                    
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+            initial_investment = st.number_input('Initial Investment', key=f"numbox{i}", min_value=0, step=10000, format='%d', value=150000)
 
-    )
-    with col4:
-        # Create the number input box
-        # Inject custom CSS to center the label
-        st.markdown(
-            """
-            <style>
-            .stNumberInput > label {
-                display: flex;
-                justify-content: center;
-                font-size: 18px;
-                margin-top: -30px;
-                
-            }
-            </style>
-            """,
-            unsafe_allow_html=True
-        )
+        with col5:
+            st.write("")
+            
+        entry_date_index = entry_find_nearest_date(selected_date_entry)
+        exit_date_index = exit_find_nearest_date(selected_date_exit)
+        if entry_date_index > exit_date_index:
+            entry_date_index = 0
+            exit_date_index = len(data)-1
 
-        # Create the number input
-        initial_investment = st.number_input('Initial Investment', key=f"numbox{i}", min_value=0, step=10000, format='%d', value=150000)
+        subcol1, subcol2, subcol3 = st.columns([1.8, 1, 1])
+        with subcol1:
+            st.write("")
+        with subcol2:
+            if st.button("Submit"):
+                if entry_date_index != st.session_state['first_date'] or exit_date_index != st.session_state['last_date'] or initial_investment != st.session_state['initial_investment'] :
+                    modified_data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
+                    q = get_analysis_with_initial_invest(modified_data, initial_investment, stratergy)
+                    st.session_state['ana'] = q
+                    st.session_state['initial_investment'] = initial_investment
+                    
+        with subcol3:
+            st.write("")
 
-    with col5:
-        st.write("")
-    entry_date_index = entry_find_nearest_date(data, selected_date_entry, entry_data_col_index)
-    exit_date_index = exit_find_nearest_date(data, selected_date_exit, entry_data_col_index)
-    if entry_date_index > exit_date_index:
-        entry_date_index = 0
-        exit_date_index = len(data)-1
-
-    subcol1, subcol2, subcol3 = st.columns([1.8, 1, 1])
-    with subcol1:
-        st.write("")
-    with subcol2:
-        if st.button("Submit"):
-            if entry_date_index != 0 or exit_date_index != len(data) -1 or initial_investment != 150000:
-                modified_data = data.iloc[entry_date_index:exit_date_index+1, :].copy()
-                q = get_analysis_with_initial_invest(modified_data, initial_investment, stratergy)
-                st.session_state['ana'] = q_init
-    with subcol3:
-        st.write("")
-
-    st.title("Analysis")
-    # Analysis = get_analysis(Analysis)
-    col1, col2, col3, col4 = st.columns(4)
-    with col1:
-        st.caption("Stratergy Code")
-        st.subheader(stratergy)
-    with col2:
-        st.caption("Transaction Fee (with Package)")
-        st.subheader("0%")
-    with col3:
-        st.caption("Transaction Fee (w/o Package)")
-        st.subheader(""":red[3%]""")
-    with col4:
-        st.caption("Recomended Days")
-        st.subheader(""":green[180]""")
+        st.title("Analysis")
+        # Analysis = get_analysis(Analysis)
+        col1, col2, col3, col4 = st.columns(4)
+        with col1:
+            st.caption("Stratergy Code")
+            st.subheader(stratergy)
+        with col2:
+            st.caption("Transaction Fee (with Package)")
+            st.subheader("0%")
+        with col3:
+            st.caption("Transaction Fee (w/o Package)")
+            st.subheader(""":red[3%]""")
+        with col4:
+            st.caption("Recomended Days")
+            st.subheader(""":green[180]""")
     
     tab1, tab2, tab3 = st.tabs(["Records", "Analytics", "Returns"])
     
     with tab3:
-        Dur = [252*2, 252, 101,11, 22, 4]
         Duration = ['All Time', ' 2 Years', '1 year', '180 Days', '30 Days', '14 Days', '3 Days']
         returns = [f"{q[19][1]}%", f"{q[44]}%", f"{q[43]}%", f"{q[42]}%", f"{q[40]}%", f"{q[41]}%", f"{q[39]}%"]
         arr = np.array([Duration, returns]).T
@@ -429,12 +365,18 @@ def next_page(q_init, stratergy, i):
         
         with bt5:
             st.subheader("Drawdown Curve")
-            st.line_chart(q[1], y='drawdown_percentage', x='Day')
+            if isinstance(st.session_state['index'], str):
+                st.line_chart(q[1], y='drawdown_pct')
+            else:
+                st.line_chart(q[1], y='drawdown_percentage')
             st.write(f"***Max Drawdown***: {q[7]}")
             st.write(f"***Maximum Drawdowm percentage***: {q[8]}")
         with bt4:
             st.subheader("Equity Curve")
-            st.line_chart(q[1], y='equity_curve')
+            if isinstance(st.session_state['index'], str):
+                st.line_chart(q[1], y='equity_calculated')
+            else:
+                st.line_chart(q[1], y='equity_curve')
         with bt3:
             st.subheader("ROI% Curve")
             st.line_chart( q[2], y='roi' )

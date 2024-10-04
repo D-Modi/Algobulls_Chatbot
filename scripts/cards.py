@@ -46,6 +46,14 @@ if 'columns' not in st.session_state:
     st.session_state['columns'] = [1,1,2.5,3,6,1.5]
 if 'account_details' not in st.session_state:
     st.session_state['account_details'] = None
+if 'first_date' not in st.session_state:
+    st.session_state['first_date'] = None
+if 'last_date' not in st.session_state:
+    st.session_state['last_date'] = None
+if 'complete_df' not in st.session_state:
+    st.session_state['complete_df'] = None
+if 'initial_investment' not in st.session_state:
+    st.session_state['initial_investment'] = 150000
     
 def CustomerPLBook(customerPLBook_analysis_streamlit):
     flag = 0

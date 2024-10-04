@@ -39,7 +39,7 @@ def parse_data_fn(data):
 class StatergyAnalysis:
      
     def __init__(self, csv_data, is_dataframe=0, number=150000, customerPLBook = False, replaced=False):
-        self.csv_data, self.csv_date_format = StatergyAnalysis.new_csv(csv_data , is_dataframe, replaced)
+        self.csv_data, self.csv_date_format = StatergyAnalysis.new_csv(csv_data , is_dataframe, replaced, customerPLBook, number)
         self.initial_investment = number
         self.daily_returnts = None
         self.monthly_returns = None
@@ -72,7 +72,7 @@ class StatergyAnalysis:
         self.loss = self.max_profit(self.csv_data, i=4)
         
     @classmethod
-    def new_csv(cls, filepath, is_dataframe=0, replaced=False):
+    def new_csv(cls, filepath, is_dataframe=0, replaced=False, customerPLB=False, initial_investment=150000):
         if is_dataframe == 0:
             data = pd.read_csv(filepath)
         else:
@@ -123,6 +123,11 @@ class StatergyAnalysis:
             data['Year'] = data['Year'].dt.strftime('%Y')
             data['weekday'] = data['weekday'].dt.strftime('%a')
             data['date'] = data['date'].dt.strftime('%Y-%m-%d %H:%M') 
+        
+        if customerPLB:
+            data['pnl_cumulative'] = data['pnl_absolute'].cumsum()
+            data['equity_calculated'] = data['pnl_cumulative'] + initial_investment
+            
         return data, date_format
         
     def daily_equity_Curve(self, customerPLBook=False):
@@ -269,8 +274,8 @@ class StatergyAnalysis:
     def drawdown(self, customerPLBook=False ):
     
         if customerPLBook:
-            self.csv_data['pnl_cumulative'] = self.csv_data['pnl_absolute'].cumsum()
-            self.csv_data['equity_calculated'] = self.csv_data['pnl_cumulative'] + self.initial_investment
+            # self.csv_data['pnl_cumulative'] = self.csv_data['pnl_absolute'].cumsum()
+            # self.csv_data['equity_calculated'] = self.csv_data['pnl_cumulative'] + self.initial_investment
             self.csv_data['equity_cum_max'] = self.csv_data['equity_calculated'].cummax()
             self.csv_data['drawdown'] = self.csv_data['equity_calculated'] - self.csv_data['equity_cum_max']        
             self.csv_data['drawdown_pct'] = (self.csv_data['drawdown']/self.csv_data['equity_cum_max'])*100
