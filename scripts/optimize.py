@@ -118,8 +118,8 @@ def merged_csv(options, dfs, investment):
     
     for i in options:
         df = dfs[i]
-        initial_investment = 150000
-        df['pnl_absolute'] = round(df['pnl_absolute']/initial_investment*investment[i] , 2)
+        # initial_investment = 150000
+        # df['pnl_absolute'] = round(df['pnl_absolute']/initial_investment*investment[i] , 2)
         
         if len(data) == 0:  
             data = df
