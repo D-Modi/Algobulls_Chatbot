@@ -100,10 +100,10 @@ class StatergyAnalysis:
         if "pnl_cumulative_absolute" not in data.columns:
             data["pnl_cumulative_absolute"] = data["pnl_absolute"].cumsum()
         
-        data['date'], date_format = parse_data_fn(data['entry_timestamp'])
         data = data.dropna(subset=['pnl_absolute'])
-        
+        date_format = None
         if 'Day' not in data.columns:
+            data['date'], date_format = parse_data_fn(data['entry_timestamp'])
             start = data['date'].iloc[0]
             end = data['date'].iloc[-1]
             if start > end:

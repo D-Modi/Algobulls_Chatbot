@@ -182,10 +182,13 @@ def run_optimize():
                 
                 if(st.button("Re-Enter Weights & initial invetment")):
                     st.session_state['Entered_values'] = None
+                    st.session_state['show_Analysis'] = False
+                    
                 if(st.button("Enter investment amounts")):
                     st.session_state['Entered_values'] = None   
                     st.session_state['show_investments'] = True
                     st.session_state['show_weights'] = False
+                    st.session_state['show_Analysis'] = False
                     
 
         if st.session_state['show_investments']: 
@@ -198,12 +201,13 @@ def run_optimize():
                     
                 if(st.button("Re-Enter invetment amount")):
                     st.session_state['Entered_values'] = None
+                    st.session_state['show_Analysis'] = False
                 
                 if(st.button("Enter Weights & initial invetment")):
                     st.session_state['Entered_values'] = None   
                     st.session_state['show_investments'] = False
                     st.session_state['show_weights'] = True
-                    
+                    st.session_state['show_Analysis'] = False
 
         if st.session_state['Entered_values'] is not None:
             investment = st.session_state['investment']
