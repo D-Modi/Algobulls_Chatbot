@@ -69,9 +69,9 @@ def get_weights(options):
     sum_weights = 0
     weights = {} 
     if st.session_state['Total_investment'] is None:   
-        investment = st.number_input(f"Enter Total investent",min_value=10000.0, value=10000.0) 
+        investment = st.number_input(f"Enter Total investent",min_value=0.0, value=10000.0) 
     else:
-        investment = st.number_input(f"Enter Total investent",min_value=10000.0, value=st.session_state['Total_investment'], key="Re_enter_investment")
+        investment = st.number_input(f"Enter Total investent",min_value=0.0, value=st.session_state['Total_investment'], key="Re_enter_investment")
     equal = 100/len(options)
     
     for j in range(len(options)):
