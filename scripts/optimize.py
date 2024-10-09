@@ -125,7 +125,8 @@ def merged_csv(options, dfs, investment):
             data = df
         else:
             data = pd.concat([df, data])
-    data = data.sort_values(by='date')
+    data = data.sort_values(by=['date', 'strategy'], kind='mergesort')  # Mergesort is stable and keeps original order
+    # data = data.sort_values(by='date')
     return data
 
 # def complete_analysis(Analysis):   
