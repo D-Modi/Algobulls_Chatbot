@@ -46,19 +46,18 @@ class StatergyAnalysis:
         self.weekly_returns = None
         self.weekday_returns = None
         self.yearly_returns = None
+        self.daily_annual_mean = 0
+        self.daily_annual_std = 0
+        self.annual_std = 0
+        self.annual_mean = 0
+        self.equity_PctChange = None
         _,_,_,_,_ =  self.analysis()
-        #self.daily_ana()
+        self.daily_equity_Curve(customerPLBook=customerPLBook)
         self.daily_equity = self.csv_data.groupby('Day')['equity_curve'].last()
         #self.daily_equity_curve = self.daily_equity_curve[['equity_curve']]
         self.equity_curve_value = self.csv_data['pnl_cumulative_absolute'] + self.initial_investment
         self.risk_free_rate = 0.07
-        self.equity_PctChange = None
-        self.annual_std = 0
-        self.annual_mean = 0
-        self.daily_annual_mean = 0
-        self.daily_annual_std = 0
         self.drawdown_max, self.drawdown_pct = self.drawdown(customerPLBook=customerPLBook)
-        self.daily_equity_Curve(customerPLBook=customerPLBook)
         self.num_wins = self.num_profit(self.csv_data)
         self.numTrades = len(self.csv_data)
         self.minProfits = []
@@ -145,7 +144,7 @@ class StatergyAnalysis:
         equity_PctChange = equity.pct_change().dropna()
         self.annual_std = equity_PctChange.std() * np.sqrt(252) 
         self.annual_mean = equity_PctChange.mean() * np.sqrt(252) 
-        return round(self.annual_std * 100, 2)
+        return round(self.daily_annual_std * 100, 2)
 
     def analysis(self):
         daily_returns = self.csv_data.groupby('Day').sum(numeric_only = True)

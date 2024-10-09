@@ -415,6 +415,7 @@ def next_page(q, stratergy, i):
 
             c1, c2 = st.columns(2)
             with c1:
+                
                 fig0, ax0 = plt.subplots(figsize=(10,2))
                 values = [q[11], q[12]]
                 x = ["Maximum Profit", "Minimum Profit"]

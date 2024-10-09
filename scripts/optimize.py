@@ -183,13 +183,14 @@ def run_optimize():
                 if(st.button("Re-Enter Weights & initial invetment")):
                     st.session_state['Entered_values'] = None
                     st.session_state['show_Analysis'] = False
+                    st.session_state.button = False
                     
                 if(st.button("Enter investment amounts")):
                     st.session_state['Entered_values'] = None   
                     st.session_state['show_investments'] = True
                     st.session_state['show_weights'] = False
                     st.session_state['show_Analysis'] = False
-                    
+                    st.session_state.button = False
 
         if st.session_state['show_investments']: 
             if st.session_state['Entered_values'] is None:
@@ -202,12 +203,14 @@ def run_optimize():
                 if(st.button("Re-Enter invetment amount")):
                     st.session_state['Entered_values'] = None
                     st.session_state['show_Analysis'] = False
+                    st.session_state.button = False
                 
                 if(st.button("Enter Weights & initial invetment")):
                     st.session_state['Entered_values'] = None   
                     st.session_state['show_investments'] = False
                     st.session_state['show_weights'] = True
                     st.session_state['show_Analysis'] = False
+                    st.session_state.button = False
 
         if st.session_state['Entered_values'] is not None:
             investment = st.session_state['investment']
@@ -217,7 +220,6 @@ def run_optimize():
                 st.button("Show Complete Analysis", on_click=complete_analysis, args=[st.session_state['options'], portfolio_Analysis])
     
             if st.session_state['show_Analysis'] == True:
-                #st.table(portfolio_Analysis[1])
                 next_page(st.session_state['ana'], st.session_state['stra'], st.session_state['index'])
             
         with st.sidebar:
