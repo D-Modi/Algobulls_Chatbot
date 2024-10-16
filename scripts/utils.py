@@ -52,12 +52,6 @@ def click_button_done():
         st.session_state.clicked = True
         return
         
-#@st.cache_data(show_spinner=False, ttl=86400)
-def get_image_base64(image_path):
-    with open(image_path, "rb") as img_file:
-        return base64.b64encode(img_file.read()).decode()
-
-#@st.cache_data(show_spinner=False, ttl=86400)
 def htmap(data, days):
     data = np.array(data['pnl_absolute'].tolist())
     data = data[-1 * days:]
@@ -92,7 +86,6 @@ def htmap(data, days):
     '''
     container.write(html_code, unsafe_allow_html=True)
 
-#@st.cache_data(show_spinner=False, ttl=86400)
 def freq_hist(profit, num):
     num.insert(0, "")  
     num.append("")  
@@ -114,7 +107,6 @@ def freq_hist(profit, num):
 
     return fig
 
-#@st.cache_data(show_spinner=False, ttl=86400)
 def daisply(daily_returns, period, csv):
     strings = []
     values = []
@@ -153,7 +145,6 @@ def daisply(daily_returns, period, csv):
         st.subheader("Cumulative Profit and loss")
         st.line_chart(csv, y=['cum_pnl'])
  
-#@st.cache_data(show_spinner=False, ttl=86400)
 def display(weekday_returns, q):
     st.subheader(f"Profit/Loss Data per Day of Week")
     st.bar_chart(q[5], y=['pnl_absolute'] )
@@ -162,7 +153,6 @@ def display(weekday_returns, q):
     table_data = q[5]['pnl_absolute']
     st.table(table_data)
 
-#@st.cache_data(show_spinner=False, ttl=86400)
 def daily_returns_hist(daily_returns):
         fig1, ax1 = plt.subplots(figsize=(10, 2))  
         ax1.bar(daily_returns.index, daily_returns['pnl_absolute'])
@@ -175,18 +165,6 @@ def daily_returns_hist(daily_returns):
         
         return fig1, fig2
 
-
-#@st.cache_data(show_spinner=False, ttl=86400)
-def is_valid_datetime(input_str):
-    try:
-        datetime.strptime(input_str, "%Y-%m-%d")
-        return True
-    except ValueError:
-        try:
-            datetime.strptime(input_str, "%d-%m-%Y")
-            return True
-        except ValueError:
-            return False
         
 def entry_find_nearest_date(target_date):
     target_date = pd.Timestamp(target_date)
@@ -206,17 +184,10 @@ def exit_find_nearest_date(target_date):
         if date <= target_date:
             return i
 
-#@st.cache_data(show_spinner=False, ttl=86400)
-def get_data_using_path(csv_path):
-    data = pd.read_csv(csv_path)
-    return data;
-
-#@st.cache_data(show_spinner=False, ttl=86400)
-def get_analysis_obj(data, stn):
+def get_calculations(data, stn):
     row = calc(data, is_dataframe=1, filename=stn)
     return row;        
 
-#@st.cache_data(show_spinner=False, ttl=86400)     
 def get_analysis_with_initial_invest(data, initial_investment, stn):
     Analysis = calc(data, is_dataframe=1, initial_investment=initial_investment, filename=stn)
     return Analysis;  
@@ -243,7 +214,9 @@ def next_page(q, stratergy, i):
     st.write(custom_aligned_text, unsafe_allow_html=True)
     st.markdown(mark, unsafe_allow_html=True)
     
-    if not isinstance(i, str):
+    if not isinstance(i, str):    
+        # we are using the same streamlit display for portfolio optimization as well; For portfolio optimization, i is a string ="optimize"; 
+        # The option to change date and investment amount is available only for a single strategy analysis and not portfolio optimization hence the if condition
         startdate = pd.to_datetime(q[1]['Day'].iloc[0]).date()
         enddate = pd.to_datetime(q[1]['Day'].iloc[-1]).date()
         
@@ -269,8 +242,8 @@ def next_page(q, stratergy, i):
             "Entry Date",
             startdate,
             key=f"entrydate{i}",
-            min_value=pd.to_datetime(data['Day'].iloc[0]).date(),      #startdate
-            max_value=pd.to_datetime(data['Day'].iloc[-1]).date(),      #enddate
+            min_value=pd.to_datetime(data['Day'].iloc[0]).date(),      #startdate of csv
+            max_value=pd.to_datetime(data['Day'].iloc[-1]).date(),      #enddate of csv
         )
         with col3:
             st.markdown(
@@ -291,8 +264,8 @@ def next_page(q, stratergy, i):
             "Exit Date",
             enddate,
             key=f"exitdate{i}",
-            min_value=selected_date_entry,      #startdate
-            max_value=pd.to_datetime(data['Day'].iloc[-1]).date(),      #enddate
+            min_value=selected_date_entry,      #startdate chosen on the calander
+            max_value=pd.to_datetime(data['Day'].iloc[-1]).date(),      #enddate of csv
         )
         with col4:
             st.markdown(
@@ -567,17 +540,6 @@ def next_page(q, stratergy, i):
             else:
                 display(q[50], q)
 
-def save_uploaded_file(uploaded_file, save_directory, file_name):
-    # Create the save directory if it does not exist
-    if not os.path.exists(save_directory):
-        os.makedirs(save_directory)
-    
-    # Save the uploaded file to the specified directory
-    file_path = os.path.join(save_directory, file_name)
-    with open(file_path, "wb") as f:
-        f.write(uploaded_file.getbuffer())
-    
-    return file_path
 
 def get_files():
     path = "files/StrategyBacktestingPLBook-*.csv"
@@ -619,7 +581,7 @@ def home():
                     tile = col.container(height=410, border=True)
                     csv_path = f"files/StrategyBacktestingPLBook-{stratergy}.csv"  
                     data = pd.read_csv(csv_path)
-                    q = get_analysis_obj(data, stratergy)
+                    q = get_calculations(data, stratergy)
                     i += 1
                     data = q[1]
                     
