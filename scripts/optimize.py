@@ -13,16 +13,6 @@ def set_page_config():
         st.set_page_config(layout="wide")
         st.session_state['page_config_set'] = True
 
-def get_files():
-    path = "files/StrategyBacktestingPLBook-*.csv"
-    Files = []
-
-    for file in glob.glob(path, recursive=True):
-        found = re.search('StrategyBacktestingPLBook(.+?)csv', str(file)).group(1)[1:-1]
-        Files.append(found)
-    
-    return Files
-
 def data_list(options, investment): 
     data = []
     dfs = {}
